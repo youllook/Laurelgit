@@ -1,0 +1,804 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using Microsoft.AspNet.SignalR;
+using Newtonsoft.Json;
+using Laurel_game.Models;
+using Laurel_game.Service;
+using System.Threading;
+using System.Web.Mvc;
+
+namespace Laurel_game.Hubs
+{
+    public class LaurelHub : Hub
+    {
+        public static DateTime time = DateTime.Now;
+        public static TimerCallback timecallback;
+        public static TimerCallback Gametimer;
+        public static System.Timers.Timer timersTimer;
+        //基本節氣資料
+        public static List<Solar_termsModel> Solar_terms = Solar_termsService.GetSolar_terms();
+
+        //目前登入
+        public static List<UserModel> UserList = new List<UserModel>();
+        //目前遊戲房間
+        public static List<RoomModel> RoomList = new List<RoomModel>();
+        //目前遊戲資料
+        public static List<StorageModel> StorageList = new List<StorageModel>();
+        #region 
+        //登入 USed!
+        public Object Login(UserModel user) {
+
+      
+            if (UserList.Where(p => p.userNo == user.userNo && p.password == user.password).ToList().Count() == 0) {
+
+                var usermodel = UserService.Login(user.userNo, user.password);
+                if (usermodel != null) {
+                    if (UserList.Where(p => p.RoomID == user.RoomID).ToList().Count() <= 4)
+                    {
+                        //data merge
+                        user.ConnectID = Context.ConnectionId;
+                        user.Name = usermodel.Name;
+                        UserList.Add(user);//加入玩家列表選單
+                        Groups.Add(Context.ConnectionId, user.RoomID);//分組廣播
+                        //DisplayRoles(user.RoomID);//推播角色資訊至選擇畫面
+                        ShowAllUser();//監控用
+                        return user;
+                    }
+                    else
+                    {
+                        //房間已滿人！
+                    }
+
+                }
+            }else
+            {
+                //已經登入
+            }
+            return false;
+        }
+
+        #endregion
+
+        //選擇角色 USed!
+        public bool RoleSelect(UserModel user)
+        {
+            //角色已被選擇
+            var RoleCount = UserList.Where(p => p.Role == user.Role && p.RoomID == user.RoomID).ToList().Count();
+            if (RoleCount == 0)
+            {
+                var user_data = UserList.Where(p => p.userNo == user.userNo && p.password == user.password).FirstOrDefault();
+                user_data.Role = user.Role;
+                DisplayRoles(user.RoomID);
+                return true;
+            }
+            else
+            {
+                DisplayRoles(user.RoomID);
+                return false;
+            }
+                
+        }
+        //顯示玩家角色 USed!
+        public void DisplayRoles(string RoomID)
+        {
+            //推播目前所有相同RoomId群組
+            var user_list = UserList.Where(p => p.RoomID == RoomID && p.Role != "").ToList();
+            if (user_list.Count() > 0)
+            {
+                Clients.Group(RoomID).ShowRole(user_list);
+            }
+        }
+        //遊戲開始 USed!
+        public object Game_Init(string RoomID)
+        {
+               //建立Room
+                RoomModel room = new RoomModel()
+                {
+                    RoomId = RoomID,
+                    //Mode = mode,
+                    StartTime = DateTime.Now
+                };
+                RoomList.Add(room);
+
+                //建立各倉儲
+                //產生初始資料
+                ProductItem pItem = new ProductItem()
+                {
+                    dumpling = new Product { No = "001", Name = "餃類", Cost = 10, Price = 15, Stock = 100, Require = 0, Note = "" },
+                    salad = new Product { No = "002", Name = "沙拉", Cost = 10, Price = 15, Stock = 100, Require = 0, Note = "" },
+                    riceball = new Product { No = "003", Name = "湯圓", Cost = 10, Price = 15, Stock = 100, Require = 0, Note = "" }
+                };
+               //產生客戶端需求資料
+                Random rnd = new Random();
+                ProductItem RetailerData = new ProductItem()
+                {
+                    //dumpling = new Product { No = "001", Name = "餃類", Cost = 10, Price = 15, Stock = 100, Require = rnd.Next(60,80), Note = "" },
+                    //salad = new Product { No = "002", Name = "沙拉", Cost = 10, Price = 15, Stock = 100, Require = rnd.Next(60, 80), Note = "" },
+                    //riceball = new Product { No = "003", Name = "湯圓", Cost = 10, Price = 15, Stock = 100, Require = rnd.Next(60, 80), Note = "" }
+                    dumpling = new Product { No = "001", Name = "餃類", Cost = 10, Price = 15, Stock = 100, Require = 10, Note = "" },
+                    salad = new Product { No = "002", Name = "沙拉", Cost = 10, Price = 15, Stock = 100, Require = 20, Note = "" },
+                    riceball = new Product { No = "003", Name = "湯圓", Cost = 10, Price = 15, Stock = 100, Require = 15, Note = "" }
+                };
+
+                 StorageModel Storage_ini = new StorageModel()
+                 {
+                        RoomId = RoomID,
+                        Distribution = new StorageData() {Role = "Distribution", ProductItem = pItem },
+                        Manufacturer = new StorageData() { Role = "Manufacturer", ProductItem = pItem },
+                        Wholesale = new StorageData() { Role = "Wholesale", ProductItem = pItem },
+                        Retailer = new StorageData() { Role = "Retailer", ProductItem = RetailerData }
+                 };
+
+                 StorageList.Add(Storage_ini);
+                //推送至畫面 Room 遊戲房間資料,Storage 各倉儲資料，Solar_terms 節氣資料
+            　　return new
+                {
+                    Room = room,
+                    Storage = Storage_ini,
+                    Solar_terms = Solar_terms
+                };
+
+
+        }
+        //遊戲每回合計算 USed!
+        int testcount = 30;
+
+        //遊戲資料更新 USed!
+        public bool Game_Update(UserModel user,StorageData Storage_data,int WeekNum)
+        {
+            var StorageItgem = StorageList.Where(p => p.RoomId == user.RoomID).FirstOrDefault();
+            
+            if (StorageItgem != null)
+            {
+                switch (Storage_data.Role)
+                {
+                    case "Manufacturer":
+                        StorageItgem.Manufacturer = Storage_data;
+                        StorageItgem.Manufacturer.IsUpdate = true;
+                        break;
+                    case "Distribution":
+                        StorageItgem.Distribution = Storage_data;
+                        StorageItgem.Distribution.IsUpdate = true;
+                        break;
+                    case "Wholesale":
+                        StorageItgem.Wholesale = Storage_data;
+                        StorageItgem.Wholesale.IsUpdate = true;
+                        break;
+                    case "Retailer":
+                        StorageItgem.Retailer = Storage_data;
+                        StorageItgem.Retailer.IsUpdate = true;
+                        break;
+                }
+            }
+
+            //等待所有人資料更新
+            if (StorageItgem.Manufacturer.IsUpdate &&
+                StorageItgem.Distribution.IsUpdate &&
+                StorageItgem.Wholesale.IsUpdate &&
+                StorageItgem.Retailer.IsUpdate
+                )
+            {
+                
+                //改回待更新狀態
+                StorageItgem.Manufacturer.IsUpdate = false;
+                StorageItgem.Distribution.IsUpdate = false;
+                StorageItgem.Wholesale.IsUpdate = false;
+                StorageItgem.Retailer.IsUpdate = false;
+
+                //修改　Retailer　的資料
+                RetailerItemHandle(user.RoomID, WeekNum);
+                
+                
+
+
+
+                //更新所有人資料
+                //Clients.Group.addNewMessageToPage(JsonConvert.SerializeObject(UserList));
+                Clients.All.UpdateClienData(StorageItgem);
+            }
+
+            return true;
+        }
+
+        #region 各倉儲業務邏輯
+        public void RetailerItemHandle(string RoomID, int WeekNum) {
+
+            var GameData = StorageList.Where(p => p.RoomId == RoomID).FirstOrDefault();
+
+            if (GameData != null) {
+
+                var RetailerItem = GameData.Retailer.ProductItem;
+                var WholesaleItem = GameData.Wholesale.ProductItem;
+                
+                //Retailer　資料更新 
+                //----------------------配送數量加入庫存前！要先檢查上游庫存！若配送數量大於庫存則加入營業所的需求，並扣減該站配送數-------------------------//
+                WholesaleItemHandle(RoomID);
+
+                //配送數量加入庫存
+                RetailerItem.dumpling.Stock += RetailerItem.dumpling.Distribute;
+                RetailerItem.riceball.Stock += RetailerItem.riceball.Distribute;
+                RetailerItem.salad.Stock += RetailerItem.salad.Distribute;
+                ////上游扣減庫存
+                //WholesaleItem.dumpling.Stock = WholesaleItem.dumpling.Stock - RetailerItem.dumpling.Distribute;
+                //WholesaleItem.riceball.Stock = WholesaleItem.riceball.Stock - RetailerItem.riceball.Distribute;
+                //WholesaleItem.salad.Stock = WholesaleItem.salad.Stock - RetailerItem.salad.Distribute;
+                //配送數量歸零
+                RetailerItem.dumpling.Distribute = 0;
+                RetailerItem.riceball.Distribute = 0;
+                RetailerItem.salad.Distribute = 0;
+
+                //庫存欄位 需求＆庫存：餃類
+                if ((RetailerItem.dumpling.Stock - RetailerItem.dumpling.Require) >= 0)
+                {
+                    RetailerItem.dumpling.Stock = (RetailerItem.dumpling.Stock - RetailerItem.dumpling.Require);
+                    RetailerItem.dumpling.Require = 0;
+                }
+                else
+                {
+                    RetailerItem.dumpling.Require = (RetailerItem.dumpling.Require - RetailerItem.dumpling.Stock);
+                    RetailerItem.dumpling.Stock = 0;
+                }
+                //庫存欄位 需求＆庫存：沙拉
+                if ((RetailerItem.salad.Stock - RetailerItem.salad.Require) >= 0)
+                {
+                    RetailerItem.salad.Stock = (RetailerItem.salad.Stock - RetailerItem.salad.Require);
+                    RetailerItem.salad.Require = 0;
+                }
+                else
+                {
+                    RetailerItem.salad.Require = (RetailerItem.salad.Require - RetailerItem.salad.Stock);
+                    RetailerItem.salad.Stock = 0;
+                }
+                //庫存欄位 需求＆庫存：湯圓
+                if ((RetailerItem.riceball.Stock - RetailerItem.riceball.Require) >= 0)
+                {
+                    RetailerItem.riceball.Stock = (RetailerItem.riceball.Stock - RetailerItem.riceball.Require);
+                    RetailerItem.riceball.Require = 0;
+                }
+                else
+                {
+                    RetailerItem.riceball.Require = (RetailerItem.riceball.Require - RetailerItem.riceball.Stock);
+                    RetailerItem.riceball.Stock = 0;
+                }
+
+
+                //加入需求
+                Random rand = new Random();
+
+                int thisMonth = (WeekNum / 4) + 3;
+                if (thisMonth > 12)
+                    thisMonth = thisMonth - 12;
+
+                int thisWeek = (WeekNum % 4) + 1;
+                //檢查是否有特殊事件
+                var SpecEvent = Solar_terms.Where(p => p.month == thisMonth && p.randomWeek == thisWeek).FirstOrDefault();
+                if (SpecEvent != null)
+                {
+                    switch (SpecEvent.product)
+                    {
+                        case "all":
+                            RetailerItem.dumpling.Require += 20;//rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                            RetailerItem.salad.Require += 20;//rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                            RetailerItem.riceball.Require += 20; //rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                            break;
+                        case "salad":
+                            RetailerItem.dumpling.Require += 20;//rand.Next(60, 80);
+                            RetailerItem.salad.Require += 20;//rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                            RetailerItem.riceball.Require += 20;// rand.Next(60, 80);
+                            break;
+                        case "dumpling":
+                            RetailerItem.dumpling.Require += 20;//rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                            RetailerItem.salad.Require += 20;//rand.Next(60, 80);
+                            RetailerItem.riceball.Require += 20; ;//rand.Next(60, 80);
+                            break;
+                        case "riceball":
+                            RetailerItem.dumpling.Require += 20;//rand.Next(60, 80);
+                            RetailerItem.salad.Require += 20;//rand.Next(60, 80);
+                            RetailerItem.riceball.Require += 20; //rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                            break;
+                    }
+
+                }
+                else
+                {
+                    //RetailerItem.dumpling.Require += rand.Next(60, 80);
+                    //RetailerItem.salad.Require += rand.Next(60, 80);
+                    //RetailerItem.riceball.Require += rand.Next(60, 80);
+                    RetailerItem.dumpling.Require += 20;
+                    RetailerItem.salad.Require += 20;
+                    RetailerItem.riceball.Require += 20;
+                }
+
+            }
+
+        }
+
+        public void WholesaleItemHandle(string RoomID)
+        {
+
+            var GameData = StorageList.Where(p => p.RoomId == RoomID).FirstOrDefault();
+
+            if (GameData != null)
+            {
+                var RetailerItem = GameData.Retailer.ProductItem;
+                var WholesaleItem = GameData.Wholesale.ProductItem;
+                var DistributionItem = GameData.Distribution.ProductItem;
+                //資料更新 
+                //----------------------配送數量加入庫存前！要先檢查上游庫存！若配送數量大於庫存則加入營業所的需求，並扣減該站配送數-------------------------//
+                DistributionItemHandle(RoomID);
+
+                //餃類　配送數　大於　庫存
+                //if(RetailerItem.dumpling.Distribute > WholesaleItem.dumpling.Stock)
+                //{
+                //    //增加需求
+                //    WholesaleItem.dumpling.Require += RetailerItem.dumpling.Distribute - WholesaleItem.dumpling.Stock;
+                //    //下游配送數修改為庫存
+                //    RetailerItem.dumpling.Distribute = WholesaleItem.dumpling.Stock;
+                //    //庫存預約扣除
+                //    WholesaleItem.dumpling.Stock = 0;
+                //}
+                //else
+                //{
+                //    //庫存預約扣除
+                //    WholesaleItem.dumpling.Stock = WholesaleItem.dumpling.Stock - RetailerItem.dumpling.Distribute;
+                //}
+                ////沙拉　配送數　大於　庫存
+                //if (RetailerItem.salad.Distribute > WholesaleItem.salad.Stock)
+                //{
+                //    //增加需求
+                //    WholesaleItem.salad.Require += RetailerItem.salad.Distribute - WholesaleItem.salad.Stock;
+                //    //下游配送數修改為庫存
+                //    RetailerItem.salad.Distribute = WholesaleItem.salad.Stock;
+                //    //庫存預約扣除
+                //    WholesaleItem.salad.Stock = 0;
+                //}
+                //else
+                //{
+                //    //庫存預約扣除
+                //    WholesaleItem.salad.Stock = WholesaleItem.salad.Stock - RetailerItem.salad.Distribute;
+                //}
+                ////湯圓　配送數　大於　庫存
+                //if (RetailerItem.riceball.Distribute > WholesaleItem.riceball.Stock)
+                //{
+                //    //增加需求
+                //    WholesaleItem.riceball.Require += RetailerItem.riceball.Distribute - WholesaleItem.riceball.Stock;
+                //    //下游配送數修改為庫存
+                //    RetailerItem.riceball.Distribute = WholesaleItem.riceball.Stock;
+                //    //庫存預約扣除
+                //    WholesaleItem.riceball.Stock = 0;
+                //}
+                //else {
+                //    //庫存預約扣除
+                //    WholesaleItem.riceball.Stock = WholesaleItem.riceball.Stock - RetailerItem.riceball.Distribute;
+                //}
+
+                //配送數量加入庫存
+                WholesaleItem.dumpling.Stock += WholesaleItem.dumpling.Distribute;
+                WholesaleItem.riceball.Stock += WholesaleItem.riceball.Distribute;
+                WholesaleItem.salad.Stock += WholesaleItem.salad.Distribute;
+                ////上游扣減庫存
+                //DistributionItem.dumpling.Stock = DistributionItem.dumpling.Stock - WholesaleItem.dumpling.Distribute;
+                //DistributionItem.riceball.Stock = DistributionItem.riceball.Stock - WholesaleItem.riceball.Distribute;
+                //DistributionItem.salad.Stock = DistributionItem.salad.Stock - WholesaleItem.salad.Distribute;
+                //配送數量歸零
+                WholesaleItem.dumpling.Distribute = 0;
+                WholesaleItem.riceball.Distribute = 0;
+                WholesaleItem.salad.Distribute = 0;
+
+                //庫存欄位 需求＆庫存：餃類
+                if ((WholesaleItem.dumpling.Stock - WholesaleItem.dumpling.Require) >= 0)
+                {
+                    WholesaleItem.dumpling.Stock = (WholesaleItem.dumpling.Stock - WholesaleItem.dumpling.Require);
+                    WholesaleItem.dumpling.Require = 0;
+                }
+                else
+                {
+                    WholesaleItem.dumpling.Require = (WholesaleItem.dumpling.Require - WholesaleItem.dumpling.Stock);
+                    //當需求被扣減的時候!下游庫存增加
+                    RetailerItem.dumpling.Stock += WholesaleItem.dumpling.Stock;
+                    WholesaleItem.dumpling.Stock = 0;
+                    
+                }
+                //庫存欄位 需求＆庫存：沙拉
+                if ((WholesaleItem.salad.Stock - WholesaleItem.salad.Require) >= 0)
+                {
+                    WholesaleItem.salad.Stock = (WholesaleItem.salad.Stock - WholesaleItem.salad.Require);
+                    WholesaleItem.salad.Require = 0;
+                }
+                else
+                {
+                    WholesaleItem.salad.Require = (WholesaleItem.salad.Require - WholesaleItem.salad.Stock);
+                    //當需求被扣減的時候!下游庫存增加
+                    RetailerItem.salad.Stock += WholesaleItem.dumpling.Stock;
+                    WholesaleItem.salad.Stock = 0;
+                }
+                //庫存欄位 需求＆庫存：湯圓
+                if ((WholesaleItem.riceball.Stock - WholesaleItem.riceball.Require) >= 0)
+                {
+                    WholesaleItem.riceball.Stock = (WholesaleItem.riceball.Stock - WholesaleItem.riceball.Require);
+                    WholesaleItem.riceball.Require = 0;
+                }
+                else
+                {
+                    WholesaleItem.riceball.Require = (WholesaleItem.riceball.Require - WholesaleItem.riceball.Stock);
+                    //當需求被扣減的時候!下游庫存增加
+                    RetailerItem.riceball.Stock += WholesaleItem.dumpling.Stock;
+                    WholesaleItem.riceball.Stock = 0;
+                }
+
+
+                //增加需求
+                WholesaleItem.dumpling.Require += RetailerItem.dumpling.Distribute;
+                //增加需求
+                WholesaleItem.salad.Require += RetailerItem.salad.Distribute;
+                //增加需求
+                WholesaleItem.riceball.Require += RetailerItem.riceball.Distribute;
+            }
+
+        }
+
+        public void DistributionItemHandle(string RoomID)
+        {
+
+            var GameData = StorageList.Where(p => p.RoomId == RoomID).FirstOrDefault();
+
+            if (GameData != null)
+            {
+                
+                var WholesaleItem = GameData.Wholesale.ProductItem;
+                var DistributionItem = GameData.Distribution.ProductItem;
+                var ManufacturerItem = GameData.Manufacturer.ProductItem;
+                //資料更新 
+                //----------------------配送數量加入庫存前！要先檢查上游庫存！若配送數量大於庫存則加入營業所的需求，並扣減該站配送數-------------------------//
+                ManufacturerItemHandle(RoomID);
+
+                ////餃類　配送數　大於　庫存
+                //if (WholesaleItem.dumpling.Distribute > DistributionItem.dumpling.Stock)
+                //{
+                //    //增加需求
+                //    DistributionItem.dumpling.Require += WholesaleItem.dumpling.Distribute - DistributionItem.dumpling.Stock;
+                //    //下游配送數修改為庫存
+                //    WholesaleItem.dumpling.Distribute = DistributionItem.dumpling.Stock;
+                //    //庫存預約扣除
+                //    DistributionItem.dumpling.Stock = 0;
+                //}
+                //else
+                //{
+                //    //庫存預約扣除
+                //    DistributionItem.dumpling.Stock = DistributionItem.dumpling.Stock - WholesaleItem.dumpling.Distribute;
+                //}
+                ////沙拉　配送數　大於　庫存
+                //if (WholesaleItem.salad.Distribute > DistributionItem.salad.Stock)
+                //{
+                //    //增加需求
+                //    DistributionItem.salad.Require += WholesaleItem.salad.Distribute - DistributionItem.salad.Stock;
+                //    //下游配送數修改為庫存
+                //    WholesaleItem.salad.Distribute = DistributionItem.salad.Stock;
+                //    //庫存預約扣除
+                //    DistributionItem.salad.Stock = 0;
+                //}
+                //else{
+                //    //庫存預約扣除
+                //    DistributionItem.salad.Stock = DistributionItem.salad.Stock - WholesaleItem.salad.Distribute;
+                //}
+                ////湯圓　配送數　大於　庫存
+                //if (WholesaleItem.riceball.Distribute > DistributionItem.riceball.Stock)
+                //{
+                //    //增加需求
+                //    DistributionItem.riceball.Require += WholesaleItem.riceball.Distribute - DistributionItem.riceball.Stock;
+                //    //下游配送數修改為庫存
+                //    WholesaleItem.riceball.Distribute = DistributionItem.riceball.Stock;
+                //    //庫存預約扣除
+                //    DistributionItem.riceball.Stock = 0;
+                //}
+                //else
+                //{
+                //    //庫存預約扣除
+                //    DistributionItem.riceball.Stock = DistributionItem.riceball.Stock - WholesaleItem.riceball.Distribute;
+                //}
+
+
+                //配送數量加入庫存
+                DistributionItem.dumpling.Stock += DistributionItem.dumpling.Distribute;
+                DistributionItem.riceball.Stock += DistributionItem.riceball.Distribute;
+                DistributionItem.salad.Stock += DistributionItem.salad.Distribute;
+                ////上游扣減庫存
+                //ManufacturerItem.dumpling.Stock = ManufacturerItem.dumpling.Stock - DistributionItem.dumpling.Distribute;
+                //ManufacturerItem.riceball.Stock = ManufacturerItem.riceball.Stock - DistributionItem.riceball.Distribute;
+                //ManufacturerItem.salad.Stock = ManufacturerItem.salad.Stock - DistributionItem.salad.Distribute;
+                //配送數量歸零
+                DistributionItem.dumpling.Distribute = 0;
+                DistributionItem.riceball.Distribute = 0;
+                DistributionItem.salad.Distribute = 0;
+
+                //庫存欄位 需求＆庫存：餃類
+                if ((DistributionItem.dumpling.Stock - DistributionItem.dumpling.Require) >= 0)
+                {
+                    DistributionItem.dumpling.Stock = (DistributionItem.dumpling.Stock - DistributionItem.dumpling.Require);
+                    DistributionItem.dumpling.Require = 0;
+                }
+                else
+                {
+                    DistributionItem.dumpling.Require = (DistributionItem.dumpling.Require - DistributionItem.dumpling.Stock);
+                    //當需求減少的時候~下游庫存增加
+                    WholesaleItem.dumpling.Stock += DistributionItem.dumpling.Stock;
+                    DistributionItem.dumpling.Stock = 0;
+                }
+                //庫存欄位 需求＆庫存：沙拉
+                if ((DistributionItem.salad.Stock - DistributionItem.salad.Require) >= 0)
+                {
+                    DistributionItem.salad.Stock = (DistributionItem.salad.Stock - DistributionItem.salad.Require);
+                    DistributionItem.salad.Require = 0;
+                }
+                else
+                {
+                    DistributionItem.salad.Require = (DistributionItem.salad.Require - DistributionItem.salad.Stock);
+                    //當需求減少的時候~下游庫存增加
+                    WholesaleItem.salad.Stock += DistributionItem.salad.Stock;
+                    DistributionItem.salad.Stock = 0;
+                }
+                //庫存欄位 需求＆庫存：湯圓
+                if ((DistributionItem.riceball.Stock - DistributionItem.riceball.Require) >= 0)
+                {
+                    DistributionItem.riceball.Stock = (DistributionItem.riceball.Stock - DistributionItem.riceball.Require);
+                    DistributionItem.riceball.Require = 0;
+                }
+                else
+                {
+                    DistributionItem.riceball.Require = (DistributionItem.riceball.Require - DistributionItem.riceball.Stock);
+                    //當需求減少的時候~下游庫存增加
+                    WholesaleItem.riceball.Stock += DistributionItem.riceball.Stock;
+                    DistributionItem.riceball.Stock = 0;
+                }
+
+                //增加需求
+                DistributionItem.dumpling.Require += WholesaleItem.dumpling.Distribute;
+                //增加需求
+                DistributionItem.salad.Require += WholesaleItem.salad.Distribute;
+                //增加需求
+                DistributionItem.riceball.Require += WholesaleItem.riceball.Distribute;
+            }
+
+        }
+
+        public void ManufacturerItemHandle(string RoomID)
+        {
+
+            var GameData = StorageList.Where(p => p.RoomId == RoomID).FirstOrDefault();
+
+            if (GameData != null)
+            {
+               
+                var ManufacturerItem = GameData.Manufacturer.ProductItem;
+                var DistributionItem = GameData.Distribution.ProductItem;
+                //配送數量加入庫存＆生產數量歸零
+                ManufacturerItem.dumpling.Stock += ManufacturerItem.dumpling.Distribute;
+                ManufacturerItem.riceball.Stock += ManufacturerItem.riceball.Distribute;
+                ManufacturerItem.salad.Stock += ManufacturerItem.salad.Distribute;
+
+                ManufacturerItem.dumpling.Distribute = 0;
+                ManufacturerItem.riceball.Distribute = 0;
+                ManufacturerItem.salad.Distribute = 0;
+
+                //餃類　配送數　大於　庫存
+                if (DistributionItem.dumpling.Distribute > ManufacturerItem.dumpling.Stock)
+                {
+                    //增加需求
+                    ManufacturerItem.dumpling.Require += DistributionItem.dumpling.Distribute - ManufacturerItem.dumpling.Stock;
+                    //下游配送數修改為庫存
+                    DistributionItem.dumpling.Distribute = ManufacturerItem.dumpling.Stock;
+                    //庫存預約扣除
+                    ManufacturerItem.dumpling.Stock = 0;
+                }
+                else
+                {
+                    //庫存預約扣除
+                    ManufacturerItem.dumpling.Stock = ManufacturerItem.dumpling.Stock - DistributionItem.dumpling.Distribute;
+                }
+                //沙拉　配送數　大於　庫存
+                if (DistributionItem.salad.Distribute > ManufacturerItem.salad.Stock)
+                {
+                    //增加需求
+                    ManufacturerItem.salad.Require += DistributionItem.salad.Distribute - ManufacturerItem.salad.Stock;
+                    //下游配送數修改為庫存
+                    DistributionItem.salad.Distribute = ManufacturerItem.salad.Stock;
+                    //庫存預約扣除
+                    ManufacturerItem.salad.Stock = 0;
+                }
+                else
+                {
+                    //庫存預約扣除
+                    ManufacturerItem.salad.Stock = ManufacturerItem.salad.Stock - DistributionItem.salad.Distribute;
+                }
+                //湯圓　配送數　大於　庫存
+                if (DistributionItem.riceball.Distribute > ManufacturerItem.riceball.Stock)
+                {
+                    //增加需求
+                    ManufacturerItem.riceball.Require += DistributionItem.riceball.Distribute - ManufacturerItem.riceball.Stock;
+                    //下游配送數修改為庫存
+                    DistributionItem.riceball.Distribute = ManufacturerItem.riceball.Stock;
+                    //庫存預約扣除
+                    ManufacturerItem.riceball.Stock = 0;
+                }
+                else
+                {
+                    //庫存預約扣除
+                    ManufacturerItem.riceball.Stock = ManufacturerItem.riceball.Stock - DistributionItem.riceball.Distribute;
+                }
+
+                //庫存欄位 需求＆庫存：餃類
+                if ((ManufacturerItem.dumpling.Stock - ManufacturerItem.dumpling.Require) >= 0)
+                {
+                    ManufacturerItem.dumpling.Stock = (ManufacturerItem.dumpling.Stock - ManufacturerItem.dumpling.Require);
+                    ManufacturerItem.dumpling.Require = 0;
+                }
+                else
+                {
+                    
+                    ManufacturerItem.dumpling.Require = (ManufacturerItem.dumpling.Require - ManufacturerItem.dumpling.Stock);
+                    //當需求減少的時候~下游庫存增加
+                    DistributionItem.dumpling.Stock += ManufacturerItem.dumpling.Stock;
+                    ManufacturerItem.dumpling.Stock = 0;
+                }
+
+                //庫存欄位 需求＆庫存：沙拉
+                if ((ManufacturerItem.salad.Stock - ManufacturerItem.salad.Require) >= 0)
+                {
+                    ManufacturerItem.salad.Stock = (ManufacturerItem.salad.Stock - ManufacturerItem.salad.Require);
+                    ManufacturerItem.salad.Require = 0;
+                }
+                else
+                {
+                    
+                    ManufacturerItem.salad.Require = (ManufacturerItem.salad.Require - ManufacturerItem.salad.Stock);
+                    //當需求減少的時候~下游庫存增加
+                    DistributionItem.salad.Stock += ManufacturerItem.salad.Stock;
+                    ManufacturerItem.salad.Stock = 0;
+                }
+
+                //庫存欄位 需求＆庫存：湯圓
+                if ((ManufacturerItem.riceball.Stock - ManufacturerItem.riceball.Require) >= 0)
+                {
+                    ManufacturerItem.riceball.Stock = (ManufacturerItem.riceball.Stock - ManufacturerItem.riceball.Require);
+                    ManufacturerItem.riceball.Require = 0;
+                }
+                else
+                {
+                    ManufacturerItem.riceball.Require = (ManufacturerItem.riceball.Require - ManufacturerItem.riceball.Stock);
+                    //當需求減少的時候~下游庫存增加
+                    DistributionItem.riceball.Stock += ManufacturerItem.riceball.Stock;
+                    ManufacturerItem.riceball.Stock = 0;
+                }
+
+                //增加需求
+                ManufacturerItem.dumpling.Require += DistributionItem.dumpling.Distribute;
+                //增加需求
+                ManufacturerItem.salad.Require += DistributionItem.salad.Distribute;
+                //增加需求
+                ManufacturerItem.riceball.Require += DistributionItem.riceball.Distribute;
+            }
+
+        }
+        #endregion
+
+
+        #region UserConnection
+
+        //Show all User
+        public void ShowAllUser() {
+            var users = JsonConvert.SerializeObject(UserList);
+            Clients.All.showUserList(users);
+        }
+        //Sends the update user count to the listening view.
+        public void Send(int count)
+        {
+            // Call the addNewMessageToPage method to update clients.
+            var context = GlobalHost.ConnectionManager.GetHubContext<LaurelHub>();
+            context.Clients.All.updateUsersOnlineCount(count);
+        }
+        //The OnConnected event.
+        public override System.Threading.Tasks.Task OnConnected()
+        {
+            string clientId = GetClientId();
+            CreateTimer();
+            return base.OnConnected();
+        }
+        //The OnReconnected event.
+        public override System.Threading.Tasks.Task OnReconnected()
+        {
+            string clientId = GetClientId();
+            return base.OnReconnected();
+        }
+        //OnDisconnected USed!
+        public override System.Threading.Tasks.Task OnDisconnected(bool stopCalled)
+        {
+            string clientId = GetClientId();
+            //斷線刪除玩家
+            var Delete_User = UserList.Where(p => p.ConnectID == clientId).FirstOrDefault();
+            if (Delete_User != null) {
+                UserList.Remove(Delete_User);
+                //若在選角的時候　斷線刪除該角色
+                DisplayRoles(Delete_User.RoomID);
+            }
+
+
+            // Send the current count of users
+            //Clients.All.addNewMessageToPage(JsonConvert.SerializeObject(UserList));
+            return base.OnDisconnected(true);
+        }
+        //GetClientId
+        private string GetClientId()
+        {
+            string clientId = "";
+            if (Context.QueryString["clientId"] != null)
+            {
+                // clientId passed from application 
+                clientId = this.Context.QueryString["clientId"];
+            }
+
+            if (string.IsNullOrEmpty(clientId.Trim()))
+            {
+                clientId = Context.ConnectionId;
+            }
+
+            return clientId;
+        }
+        #endregion
+
+        #region UserGROUP
+        public void Group(String GroupId)
+        {
+            Groups.Add(Context.ConnectionId, GroupId);
+            Clients.Group(GroupId).addMessage(Context.ConnectionId + ":Welcome");
+        }
+        public void Groupsend(String GroupId, String Message)
+        {
+            Clients.Group(GroupId).addMessage(Message);
+        }
+        public void SendOne(String ClientId, String Message)
+        {
+            Clients.Client(ClientId).addMessage(Message);
+        }
+        #endregion
+
+
+        //Timer
+        public void TimerStart()
+        {
+            if(timersTimer == null)
+            {
+              timersTimer = new System.Timers.Timer();
+            }
+            var context = GlobalHost.ConnectionManager.GetHubContext<LaurelHub>();
+        }
+        private void CreateTimer() {
+
+                if (timecallback == null)
+                {
+                    timecallback = new TimerCallback(TimerTask);
+                    //for gameloop test
+                    Timer timer = new Timer(timecallback, null, 1000, 1000);
+                }
+        }
+        private static void TimerTask(object obj)
+        {
+            //Console.WriteLine(count.ToString());
+            var context = GlobalHost.ConnectionManager.GetHubContext<LaurelHub>();
+            context.Clients.All.GetTime(DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss"));
+        }
+
+
+        #region ChatDemo 聊天室測試用
+        public void Hello()
+        {
+            Clients.All.hello();
+        }
+        public void Send(string name, string message)
+        {
+            Clients.All.addNewMessageToPage(name, message);
+        }
+        #endregion
+    }
+}

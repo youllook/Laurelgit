@@ -1,0 +1,379 @@
+﻿
+@model Laurel_game.Models.GameRecordJson
+
+@*<script src="@Url.Content("~/Scripts/echarts.min.js")"></script>
+        <script src="http://echarts.baidu.com/build/dist/echarts.js"></script>
+*@
+
+<script src="@Url.Content("~/Record/demo.js")"></script>
+<script>
+	    var myChart; //ChartObj
+	   //原始資料
+	    var source = @Html.Raw(Model.GameData_Json);
+		//console.log(source);
+        var benifit = @Model.CostSet_Json;
+		//各商家設定資料
+		var game_chart_data = {
+			Manufacturer_Data : {
+			 income:[],
+			 cost:[],
+			 fine:[]
+			},
+			Distribution_Data : {
+			 income:[],
+			 cost:[],
+			 fine:[]
+			},
+			Retailer_Data : {
+			 income:[],
+			 cost:[],
+			 fine:[]
+			},
+			Wholesale_Data : {
+			 income:[],
+			 cost:[],
+			 fine:[]
+			}
+		};
+
+		//各商家名稱
+		var rolelist = ['Manufacturer','Distribution','Wholesale','Retailer'];
+
+		//目前表單分類
+		var chartType = "profit_chart"; //ex:profit_chart,income_chart,cost_chart,fine_chart
+		//產生基底資料 ex:總表,餃類,湯圓,沙拉
+		function generate_base_chart(productName){
+			//處理畫面
+			//$('button').removeClass('active');
+			//$('button').removeClass('onType');
+			//$(this).addClass('active');
+			//$('.' + chartType).addClass('onType');
+
+			var tempData = {};//迴圈暫存資料
+
+			//data reset
+			for(var item in rolelist){
+
+			 game_chart_data[rolelist[item] + '_Data'].income = [];
+			 game_chart_data[rolelist[item] + '_Data'].cost = [];
+			 game_chart_data[rolelist[item] + '_Data'].fine = [];
+			};
+
+
+			for(var i=1;i<=12;i++){
+
+			//每月資料
+			 var month_data = source.filter((p) => {
+			   if(p.month == i)
+			   return p;
+			 });
+
+
+			 for(var item in rolelist){
+			     var rolename = rolelist[item];
+				 tempData[rolelist[item] + '_income'] = 0;
+				 tempData[rolelist[item] + '_cost'] = 0;
+				 tempData[rolelist[item] + '_fine'] = 0;
+				 //w = week
+				 for(var w=0;w<3;w++){
+
+					 if(typeof productName !== 'undefined'){
+
+						 tempData[rolelist[item] + '_income'] =
+						 (month_data[w][rolename][productName].income * benifit[rolename].income[productName]);
+						 tempData[rolelist[item] + '_cost'] =
+						 (month_data[w][rolename][productName].cost * benifit[rolename].cost[productName]);
+						 tempData[rolelist[item] + '_fine'] =
+						 ((month_data[w][rolename][productName].require + month_data[w][rolename][productName].overrun) * benifit[rolename].fine[productName]);
+
+					 }else{
+
+						 tempData[rolelist[item] + '_income'] =
+						 (month_data[w][rolename].dumpling.income * benifit[rolename].income.dumpling) +
+						 (month_data[w][rolename].riceball.income * benifit[rolename].income.riceball) +
+						 (month_data[w][rolename].salad.income * benifit[rolename].income.salad);
+						 tempData[rolelist[item] + '_cost'] =
+						 (month_data[w][rolename].dumpling.cost * benifit[rolename].cost.dumpling) +
+						 (month_data[w][rolename].riceball.cost * benifit[rolename].cost.riceball) +
+						 (month_data[w][rolename].salad.cost * benifit[rolename].cost.salad);
+						 tempData[rolelist[item] + '_fine'] =
+						 ((month_data[w][rolename].dumpling.require + month_data[w][rolename].dumpling.overrun) * benifit[rolename].fine.dumpling) +
+						 ((month_data[w][rolename].riceball.require + month_data[w][rolename].riceball.overrun) * benifit[rolename].fine.riceball) +
+						 ((month_data[w][rolename].salad.require + month_data[w][rolename].salad.overrun) * benifit[rolename].fine.salad);
+
+					 };
+				 };
+				//累加
+				 if(i != 1){
+					 game_chart_data[rolename + '_Data'].income.push(tempData[rolelist[item] + '_income'] + game_chart_data[rolename + '_Data'].income[(i-2)]);
+					 game_chart_data[rolename + '_Data'].cost.push(tempData[rolelist[item] + '_cost'] + game_chart_data[rolename + '_Data'].cost[(i-2)]);
+					 game_chart_data[rolename + '_Data'].fine.push(tempData[rolelist[item] + '_fine'] + game_chart_data[rolename + '_Data'].fine[(i-2)]);
+
+				 }else{
+					 game_chart_data[rolename + '_Data'].income.push(tempData[rolelist[item] + '_income']);
+					 game_chart_data[rolename + '_Data'].cost.push(tempData[rolelist[item] + '_cost']);
+					 game_chart_data[rolename + '_Data'].fine.push(tempData[rolelist[item] + '_fine']);
+				}
+				//不累加
+				// game_chart_data[rolename + '_Data'].income.push(tempData[rolelist[item] + '_income']);
+				// game_chart_data[rolename + '_Data'].cost.push(tempData[rolelist[item] + '_cost']);
+				// game_chart_data[rolename + '_Data'].fine.push(tempData[rolelist[item] + '_fine']);
+
+			 }
+
+			};
+			//refresh chart
+			if(typeof myChart !== 'undefined'){
+			  //var chartType = "profit_chart"; //ex:profit_chart,income_chart,cost_chart,fine_chart
+			  if(chartType == "profit_chart")
+			   profit_chart();
+			  else if(chartType == "income_chart")
+			   income_chart();
+			  else if(chartType == "cost_chart")
+			   cost_chart();
+			  else if(chartType == "fine_chart")
+			   fine_chart();
+			}
+		};
+
+		var _init_data = {
+			  Manufacturer_all_income:[],
+			  Distribution_all_income:[],
+			  Retailer_all_income:[],
+			  Wholesale_all_income:[]
+		};
+
+		function _data_set(){
+		  for(var item in rolelist){
+		    var _rolename = rolelist[item];
+
+			for(var i=0;i<=11;i++){
+			 var _income = game_chart_data[_rolename + '_Data'].income[i]
+			  - game_chart_data[_rolename + '_Data'].cost[i]
+			  - game_chart_data[_rolename + '_Data'].fine[i]
+			  //console.log(_rolename + 'in month ' + i + ' has income:' + _income);
+			 _init_data[_rolename + '_all_income'].push(_income);
+			};
+
+		  };
+		}
+		//盈餘
+		function profit_chart(){
+		  chartType = "profit_chart";
+		  _data_set();
+		  var reset_option = {
+			series:[
+			  {
+				data:_init_data.Manufacturer_all_income
+			  },
+			  {
+				data:_init_data.Distribution_all_income
+			  },
+			  {
+				data:_init_data.Wholesale_all_income
+			  },
+			  {
+				data:_init_data.Retailer_all_income
+			  }
+			]
+		  }
+		  myChart.setOption(reset_option);
+		}
+		//收入
+		function income_chart(){
+		  chartType = "income_chart";
+		  var reset_option = {
+			series:[
+			  {
+				data:game_chart_data.Manufacturer_Data.income
+			  },
+			  {
+				data:game_chart_data.Distribution_Data.income
+			  },
+			  {
+				data:game_chart_data.Wholesale_Data.income
+			  },
+			  {
+				data:game_chart_data.Retailer_Data.income
+			  }
+			]
+		  }
+		  myChart.setOption(reset_option);
+		}
+		//成本
+		function cost_chart(){
+		  chartType = "cost_chart";
+		  var reset_option = {
+			series:[
+			  {
+				data:game_chart_data.Manufacturer_Data.cost
+			  },
+			  {
+				data:game_chart_data.Distribution_Data.cost
+			  },
+			  {
+				data:game_chart_data.Wholesale_Data.cost
+			  },
+			  {
+				data:game_chart_data.Retailer_Data.cost
+			  }
+			]
+		  }
+		  myChart.setOption(reset_option);
+		}
+		//罰款
+		function fine_chart(){
+		  chartType = "fine_chart";
+		  var reset_option = {
+			series:[
+			  {
+				data:game_chart_data.Manufacturer_Data.fine
+			  },
+			  {
+				data:game_chart_data.Distribution_Data.fine
+			  },
+			  {
+				data:game_chart_data.Wholesale_Data.fine
+			  },
+			  {
+				data:game_chart_data.Retailer_Data.fine
+			  }
+			]
+		  }
+		  myChart.setOption(reset_option);
+		}
+</script>
+
+<style>
+    #chart_area {
+        width: 100%;
+        height: 100%;
+    }
+
+    button.active, button.onType {
+        border: 1px solid red;
+    }
+</style>
+
+<div class="main_area_2 step4" ng-show="getStep('step4')">
+    <div class="logo">
+        <div class="left_logo"><img src="@Url.Content("~/Content/images/logo.png")"></div>
+        <div class="top_logo"><h1>成效分析</h1></div>
+    </div>
+    <div class="main">
+        <div class="result step4">
+            <button onclick="generate_base_chart()" class="active">總表</button>
+            <button onclick="generate_base_chart('dumpling')">餃類</button>
+            <button onclick="generate_base_chart('riceball')">湯圓</button>
+            <button onclick="generate_base_chart('salad')">沙拉</button>
+            <br />
+            <button onclick="profit_chart()" class="profit_chart onType">盈餘</button>
+            <button onclick="income_chart()" class="income_chart">收入</button>
+            <button onclick="cost_chart()" class="cost_chart">成本</button>
+            <button onclick="fine_chart()" class="fine_chart">罰款</button>
+            <div id="main" style="height:400px"></div>
+        </div>
+    </div>
+    <div class="copyright">版權所有 © 2017 LAUREL CORP. All Rights Reserved.</div>
+</div>
+
+    <!-- ECharts import -->
+    <script src="http://echarts.baidu.com/build/dist/echarts.js"></script>
+
+    <script type="text/javascript">
+	        if(typeof myChart === 'undefined'){
+				generate_base_chart();
+				_data_set();
+			}
+
+
+			// configure for module loader
+			require.config({
+				paths: {
+					echarts: 'http://echarts.baidu.com/build/dist'
+				}
+			});
+			// use
+			require(
+				[
+					'echarts',
+					'echarts/chart/bar', // require the specific chart type
+					'echarts/chart/line'
+				],
+				function (ec) {
+					// Initialize after dom ready
+					myChart = ec.init(document.getElementById('main'));
+
+					var option = {
+									tooltip : {
+										trigger: 'axis'
+									},
+									legend: {
+										data:['工廠','發貨中心','營業所','通路']
+									},
+									toolbox: {
+										show : true,
+										feature : {
+											//mark : {show: true},
+											dataView : {show: true, readOnly: true},
+											//magicType : {show: true, type: ['line', 'bar']},
+											//restore : {show: true},
+											saveAsImage : {show: true}
+										}
+									},
+									calculable : true,
+									xAxis : [
+										{
+											type : 'category',
+											boundaryGap : false,
+											data : ["三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月","一月","二月"],
+
+										}
+									],
+									yAxis : [
+										{
+											type : 'value'
+										}
+									],
+									color:[ '#8CB044', '#DC7D2F', '#6C9AD0', '#975AD9'],
+									series : [
+										{
+											name:'工廠',
+											type:'line',
+											stack: 'Manufacturer',
+											data: _init_data.Manufacturer_all_income,//[120, 132, 101, 134, 90, 230, 210, 101, 134, 90, 230, 210],
+											axisLine : {    // 轴线
+											show: true,
+												lineStyle: {
+													color: 'red',
+													type: 'solid'
+												}
+											}
+										},
+										{
+											name:'發貨中心',
+											type:'line',
+											stack: 'Manufacturer',
+											data: _init_data.Distribution_all_income //[220, 182, 191, 234, 290, 330, 310, 191, 234, 290, 330, 310]
+										},
+										{
+											name:'營業所',
+											type:'line',
+											stack: 'Wholesale',
+											data: _init_data.Wholesale_all_income//[150, 232, 201, 154, 190, 330, 410, 201, 154, 190, 330, 410]
+										},
+										{
+											name:'通路',
+											type:'line',
+											stack: 'Retailer',
+											data: _init_data.Retailer_all_income//[320, 332, 301, 334, 390, 330, 320, 301, 334, 390, 330, 320]
+										}
+									]
+								};
+
+
+					// Load data into the ECharts instance
+					myChart.setOption(option);
+				}
+			);
+    </script>

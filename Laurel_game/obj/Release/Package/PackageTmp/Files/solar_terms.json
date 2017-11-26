@@ -1,0 +1,98 @@
+﻿[
+  {
+    "month": 3,
+    "terms": "春冬換季",
+    "product": "salad",
+    "event_name":"寒流",
+    "event_min":10,
+    "event_max":30
+  },
+  {
+    "month": 4,
+    "terms": "綠竹筍季",
+    "product": "salad",
+    "event_name":"缺筍",
+    "event_min":10,
+    "event_max":30
+  },
+  {
+    "month": 5,
+    "terms": "綠竹筍季",
+    "product": "salad",
+    "event_name":"缺筍",
+    "event_min":10,
+    "event_max":30
+  },
+  {
+    "month": 6,
+    "terms": "颱風季",
+    "product": "dumpling",
+    "event_name":"寒流",
+    "event_min":10,
+    "event_max":30
+  },
+  {
+    "month": 7,
+    "terms": "颱風季",
+    "product": "dumpling",
+    "event_name":"寒流",
+    "event_min":10,
+    "event_max":30
+  },
+  {
+    "month": 8,
+    "terms": "颱風季",
+    "product": "dumpling",
+    "event_name":"寒流",
+    "event_min":10,
+    "event_max":30
+  },
+  {
+    "month": 9,
+    "terms": "颱風季",
+    "product": "dumpling",
+    "event_name":"寒流",
+    "event_min":10,
+    "event_max":30
+  },
+  {
+    "month": 10,
+    "terms": "中秋",
+    "product": "dumpling",
+    "event_name":"寒流",
+    "event_min":10,
+    "event_max":30
+  },
+  {
+    "month": 11,
+    "terms": "寒流",
+    "product": "dumpling",
+    "event_name":"寒流",
+    "event_min":10,
+    "event_max":30
+  },
+  {
+    "month": 12,
+    "terms": "冬至",
+    "product": "riceball",
+    "event_name":"寒流",
+    "event_min":10,
+    "event_max":30
+  },
+  {
+    "month": 1,
+    "terms": "過年",
+    "product": "dumpling",
+    "event_name":"寒流",
+    "event_min":10,
+    "event_max":30
+  },
+  {
+    "month": 2,
+    "terms": "元宵",
+    "product": "riceball",
+    "event_name":"暖春",
+    "event_min":10,
+    "event_max":30
+  } 
+]

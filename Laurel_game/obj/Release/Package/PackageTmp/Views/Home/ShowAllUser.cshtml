@@ -1,0 +1,45 @@
+﻿@{
+    ViewBag.Title = "Chat";
+}
+<style>
+    body{background-image:none}
+</style>
+<h2 id="title">Time Now:</h2>
+
+
+    <script src="@Url.Content("~/Scripts/jquery.signalR-2.2.2.min.js")"></script>
+    <script src="~/signalr/hubs"></script>
+  
+<ul id="discussion"></ul>
+<script>
+    $(function () {
+
+    // Reference the auto-generated proxy for the hub.
+    var userActivity = $.connection.laurelHub;
+
+    userActivity.client.getTime = function (data) {
+        console.log(data);
+        $('#title').html('Time Now: ' + data);
+    };
+    userActivity.client.showUserList = function (UserData) {
+        
+        var Users = $.parseJSON(UserData);
+        console.log(Users);
+        var htmlstr = "";
+        for(var item in Users)
+        {
+            var user = Users[item]
+            console.log(user);
+            htmlstr += '<li><strong>' + 'RoomID:' + user.RoomID + 'ConnectID:' + user.ConnectID + 'password:' + user.password + 'userNo:' + user.userNo + '</strong>' + '</li>';
+        }
+        $('#discussion').html(htmlstr);
+    };
+
+    $.connection.hub.start().done(function () {//webSockets、longPolling、serverSentEvents、foreverFrame
+        userActivity.server.showAllUser();
+    })
+    .fail(function () {
+        alert("Error connecting to realtime service");
+    });
+});
+</script>

@@ -1,0 +1,48 @@
+﻿@{
+    ViewBag.Title = "Chat";
+}
+<h2>group</h2>
+<style>
+    body {
+        background-image: none;
+    }
+</style>
+<div class="container">
+    GroupName:<input type="text" id="groupname"/><br/>
+    <input type="text" id="message" />
+    <input type="button" id="sendmessage" value="Send" /><br />
+
+    <input type="button" id="ClientID" value="SendToID" />
+    <ul id="discussion"></ul>
+</div>
+@section scripts {
+    <script src="@Url.Content("~/Scripts/jquery.signalR-2.2.2.min.js")"></script>
+  
+    <script src="~/signalr/hubs"></script>
+    
+    <script>
+        $(function () {
+            var chat = $.connection.laurelHub;
+
+            chat.client.addMessage = function (message) {
+                $('#discussion').append("<li>" + message + "</li>");
+            };
+
+            $("#sendmessage").click(function () {
+                chat.server.groupsend($('#groupname').val(), $("#message").val());
+            });
+            $("#ClientID").click(function () {
+                console.log($('#groupname').val());
+                chat.server.sendOne($('#groupname').val(), $('#message').val());
+            });
+            $.connection.hub.start().done(function () {//webSockets、longPolling、serverSentEvents、foreverFrame
+                chat.server.group("GroupA");
+                //chat.server.groupsend("da37e11c-987b-4ff5-bf7f-97c8155b469c", "hello"); // Notify other clients
+            })
+            .fail(function () {
+                alert("Error connecting to realtime service");
+            });
+        });
+
+    </script>
+}

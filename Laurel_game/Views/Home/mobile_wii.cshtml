@@ -1,0 +1,61 @@
+﻿@{
+    ViewBag.Title = "Chat";
+}
+<h2>Chat</h2>
+<div id="coordinate"></div>
+<canvas id="abb" width="900" height="600"></canvas>
+
+<img style="position:absolute;right:0;bottom:0" src="http://chart.apis.google.com/chart?cht=qr&chl=laurel.relation.com.tw/Home/mobile_wii_controller&chs=300x300"/>
+
+@section scripts {
+  
+    <script src="@Url.Content("~/Scripts/jquery.signalR-2.2.2.min.js")"></script>
+    <script src="~/signalr/hubs"></script>
+    <script>
+        var SingalR_Hub;
+        $(function () {
+
+            SingalR_Hub = $.connection.laurelHub;
+
+            SingalR_Hub.client.coordinateCallBack = function (x, y) {
+                $('#coordinate').html('x' + x + 'y:' + y);
+                img_position(x,y);
+            };
+
+            $.connection.hub.start().done(function () {
+                MyWorld();
+            }).fail(function () {
+               alert('connect error')
+            });
+        });
+
+        var context;
+        var canvas;
+        var ints;
+
+        var MyWorld = function () {
+            canvas = document.getElementById("abb");
+            //canvas.width=900;
+            //canvas.height=600;
+            context = canvas.getContext("2d");
+            GameStart();
+        }
+        var GameStart = function () {
+            clearLoop();
+        }
+ 
+        var clearLoop = function () {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        var img_position = function (x, y) {
+            clearLoop();
+            var img = new Image();
+            img.src = "http://laurel.relation.com.tw/Content/images/logo.png";
+            context.drawImage(img, 430 - x, 280 - y);
+        }
+
+
+
+    </script>
+}

@@ -1,0 +1,79 @@
+﻿@{
+    ViewBag.Title = "Chat";
+}
+<h2>mobile wii controller</h2>
+	alpha:<span id="alpha"></span><br />
+	beta:<span id="beta"></span><br />
+	gamma:<span id="gamma"></span><br />
+	x:<span id="xArax"></span><br />
+	y:<span id="yArax"></span><br />
+@section scripts {
+  
+    <script src="@Url.Content("~/Scripts/jquery.signalR-2.2.2.min.js")"></script>
+    <script src="~/signalr/hubs"></script>
+    <script>
+        var SingalR_Hub;
+
+        function HubConnect() {
+            return new Promise((resolve, reject) => {
+
+                SingalR_Hub = $.connection.laurelHub;
+
+                $.connection.hub.start().done(function () {
+                    resolve(true);
+                }).fail(function () {
+                    resolve(false);
+                });
+
+            });
+
+        };
+
+        function coordinate(x, y) {
+            //畫布的寬高為900*600
+            //x 35表示偏移量 最大為35
+            x = (x > 125) ? 125 : x;
+            x = (x < 55 ) ? 55 : x;
+            if (x > 90)
+                x = -(((x-90)/35)*450);
+            else
+                x = (((90 - x) / 35) * 450);
+           
+            //y 20表示偏移量 最大為35
+            y = (y > 20) ? 20 : y;
+            y = (y < -20) ? -20 : y;
+
+            y = (y/20)*300;
+            $('#xArax').html(x);
+            $('#yArax').html(y);
+            SingalR_Hub.server.mobileCoordinate(x, y);
+        }
+
+
+            HubConnect().then((res) => {
+
+                if (window.DeviceOrientationEvent) {
+                    window.addEventListener('deviceorientation', function (event) {
+                        var a = document.getElementById('alpha'),
+                              b = document.getElementById('beta'),
+                              g = document.getElementById('gamma'),
+                              alpha = event.alpha,
+                              beta = event.beta,
+                              gamma = event.gamma;
+
+                        
+                        a.innerHTML = Math.round(alpha);
+                        b.innerHTML = Math.round(beta);
+                        g.innerHTML = Math.round(gamma);
+
+                        coordinate((90 - alpha), (beta))
+                        console.log(alpha);
+                        console.log(beta);
+                    }, false);
+                } else {
+                    alert('你的瀏覽器不支援');
+                }
+            });
+
+    </script>
+}

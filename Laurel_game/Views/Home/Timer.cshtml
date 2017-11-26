@@ -1,0 +1,31 @@
+﻿@{
+    ViewBag.Title = "Chat";
+}
+<style>
+    body{background-image:none}
+</style>
+<h2>Chat</h2>
+<div class="container">
+    UserName:<input type="text" id="username"/><br/>
+    <input type="text" id="message" />
+    <input type="button" id="sendmessage" value="Send" />
+    <input type="hidden" id="displayname" />
+    <ul id="discussion"></ul>
+</div>
+
+    <script src="@Url.Content("~/Scripts/jquery.signalR-2.2.2.min.js")"></script>
+    <script src="~/signalr/hubs"></script>
+  
+<div id="usersCount"></div>
+<script>
+$(function () {
+  // Reference the auto-generated proxy for the hub.
+    var userActivity = $.connection.laurelHub;
+  // Create a function that the hub can call back to display messages.
+    userActivity.client.GetTime = function (count) {
+    // Add the message to the page.
+    $('#usersCount').text(count);
+  };
+  $.connection.hub.start();
+});
+</script>

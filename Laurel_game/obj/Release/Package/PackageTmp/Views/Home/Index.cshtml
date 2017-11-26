@@ -1,0 +1,716 @@
+﻿    <!--------開發參考http://ithelp.ithome.com.tw/articles/10158681 -------------->
+
+<script>
+
+    $(function () {
+
+    });
+    var mainCtrl = function ($scope, $rootScope, $http, $window) {
+    
+        $scope.User = {
+            userNo : '',
+            password: '',
+            RoomId: '1111'
+        };
+        
+        var SingnalR_main = $.connection.laurelHub;
+
+        //SingnalR_main.client.GetTime = function (data) {
+        //   console.log(data);
+        //};
+        //音效設定
+        $scope.Music = {
+            'base': new Audio('/Content/music/base.mp3'),
+            'event': new Audio('/Content/music/event.mp3'),
+            'login': new Audio('/Content/music/login.mp3'),
+            'selected': new Audio('/Content/music/selected.mp3'),
+            'unselected': new Audio('/Content/music/unselected.mp3'),
+            'ini_bg': new Audio('/Content/music/ini_bg.mp3')
+        };
+        //Music Setting play base
+        $scope.Music["ini_bg"].loop = "loop";
+        $scope.Music["ini_bg"].play();
+
+
+        $.connection.hub.start().done(function () {
+            console.log('Connection done!!');
+
+            //執行遊戲初始
+            get_game_init().then(
+                (res) => {
+                    if (res) {
+                        $scope.nowStep = "step3";
+                        $scope.$apply();//refresh view             
+                    } else {
+                        console.log('game init error in success!');
+                    }
+                }, (error) => {
+                    console.log('game init error!');
+                }
+            );
+        })
+        .fail(function () {
+            console.log('Connection error!')
+        });
+
+
+
+
+        //目前顯示畫面
+        $scope.nowStep = "step1";
+        $scope.getStep = function (step) {
+            if (step == $scope.nowStep)
+                return true;
+            else
+                return false;
+            
+        };
+        //login 
+        $scope.game_Type = "four";
+        $scope.Login = function () {
+
+            if ($scope.User.userNo == '') { alert('請輸入員工代號!'); return; };
+            if ($scope.User.password == '') { alert('請輸入員工密碼!'); return; };
+            if ($scope.User.RoomId == '') { alert('請輸入分組代碼!'); return; };
+            SingnalR_main.server.login($scope.User).done(function (result) {
+                if (result) {
+                    $scope.nowStep = "step2";
+                    $scope.$apply();//refresh view
+                    SingnalR_main.server.displayRoles($scope.User.RoomId);
+                } else {
+                    alert('login error');
+                }
+            });
+
+        };
+
+        //角色宣告 Manufacturer,Distribution,Wholesale,Retailer
+        $scope.PlayerData = {};
+      
+        //角色選擇
+        $scope.Role_select = function (role) {
+            $scope.User.role = role;
+            SingnalR_main.server.roleSelect($scope.User).done(function (result) {
+                if (!result) {
+                    alert('該角色已被選取');
+                    $scope.User.role = '';
+                };
+            });
+        };
+
+        //遊戲是否可開始
+        $scope.IsGameStart = false;
+        //接收角色資料顯示畫面
+        SingnalR_main.client.showRole = function (result) {
+            console.log('showRole', result);
+            for (var item in result) {
+                var role = result[item].Role;
+                $scope.PlayerData[role] = result[item];
+                //console.log('PlayerData',$scope.PlayerData);
+                var size = Object.keys($scope.PlayerData).length;
+                if (size == 4) {
+                    $scope.IsGameStart = true;
+                };
+            };
+            $scope.$apply();//refresh view
+        };
+        
+        $scope.game_start = function () {
+            console.warn('[Check] game_start');
+            console.warn('[Check] IsGameStart', $scope.IsGameStart);
+            console.warn('[Check] $scope.User', $scope.User);
+            if ($scope.IsGameStart) {
+                SingnalR_main.server.gameStart($scope.User);
+            } else {
+                alert('人數尚未到齊');
+            };
+        }
+        //ro資料
+        $scope.room_data;
+        $scope.game_data;
+        $scope.solar_terms; //節氣
+        $scope.solar_term_Name = ""; //節氣名稱
+        $scope.solar_term_Event = "-"; //節氣特殊事件
+
+        //遊戲初始function
+        function get_game_init() {
+            console.log('get_game_init');
+            return new Promise(function (resolve, reject) {
+                //取room_data,game_data,節氣
+                SingnalR_main.server.game_Init($scope.User.RoomId).done(
+                        function (result) {
+                            console.log('SingnalR_main.server.game_Init success!', result);
+
+                            $scope.room_data = result.Room;
+                            $scope.game_data = result.Storage;
+                            $scope.solar_terms = result.Solar_terms;
+
+                            $scope.Music["ini_bg"].pause();
+                            $scope.Music["base"].loop = "loop";
+                            //$scope.Music["base"].play();
+                            
+                            //loopdataset
+                            if (typeof $scope.room_data !== 'undefined') {
+                              $scope.TimeLoop = $scope.room_data.Countdown; //週期秒數
+                              $scope.Timecount = $scope.room_data.Countdown;     
+                            }
+
+                            $scope.GameClientLoop();
+                            resolve(true);
+                        }
+                    ).fail(
+                        function (result) {
+                            //console.log('SingnalR_main.server.game_Init success!', result);
+                            reject(result);
+                        }
+                    );
+            });
+        };
+        function GameDataUpload(role) {
+            console.log('GameDataUpload', $scope.game_data);
+            var UpdataData = $scope.game_data[role];
+            return new Promise(function (resolve, reject) {
+                SingnalR_main.server.game_Update($scope.User, UpdataData, $scope.gameWeek).done(
+                        function (result) {
+                            //console.log('server.game_Update success');
+                            resolve(result);
+                        }
+                    ).fail(
+                        function (result) {
+                            reject('GameDataUpload error', result)
+                        }
+                    );
+            });
+        };
+
+        $scope.GameClientLoop = function () {
+
+            if($scope.PauseEvent){
+                return;
+            }
+            //console.log('week number', $scope.gameWeek);
+            if ($scope.gameWeek == 47) {
+                alert('Game End!');
+                return false;
+            };
+
+            if ($scope.Timecount - 1 < 0) {
+                $scope.Timecount = $scope.TimeLoop;
+                $scope.gameWeek++;
+                $scope.WeekChange = true;
+                //送出資料取得更新後再執行
+                GameDataUpload('Distribution').then(
+                    (res) => { console.log('Promise GameDataUpload Success', res);},
+                    (error) => { console.log('GameDataUpload error', error); }
+                );
+                GameDataUpload('Manufacturer').then(
+                    (res) => {
+                        //console.log('Promise GameDataUpload Success', res);
+                    },
+                    (error) => { console.log('GameDataUpload error', error); }
+                );
+                GameDataUpload('Wholesale').then(
+                    (res) => {
+                        //console.log('Promise GameDataUpload Success', res);
+                    },
+                    (error) => { console.log('GameDataUpload error', error); }
+                );
+                GameDataUpload('Retailer').then(
+                    (res) => {
+                        //console.log('Promise GameDataUpload Success', res);
+                    },
+                    (error) => { console.log('GameDataUpload error', error); }
+                );
+            } else {
+                $scope.Timecount = $scope.Timecount - 1;
+                $scope.WeekChange = false;
+                //呼叫自己
+                setTimeout($scope.GameClientLoop, 1000);
+            };
+            $scope.WeekNameSetting();
+            $scope.$apply();//refresh view
+        };
+
+        //UpdateClientData
+        SingnalR_main.client.updateClienData = function (result) {
+            //console.log('data client refresh!!', result);
+            $scope.game_data = result;
+            //打開送出按鈕
+            $scope.role1_check = false;
+            $scope.role2_check = false;
+            $scope.role3_check = false;
+            $scope.role4_check = false;
+            //refresh view
+            $scope.$apply();
+            //更新資料後繼續計時
+            setTimeout($scope.GameClientLoop, 1000);
+        };
+
+        $scope.gameWeek = 0;  //週數
+        $scope.TimeLoop = 30 //週期秒數
+        $scope.Timecount = $scope.TimeLoop; //週期秒數
+        
+        //時間顯示，背景
+        $scope.WeekChange = false;
+        $scope.WeekName = "3月第一周"; //開始時間為3月第一周 結算時間為2月第四周 共計48周
+        $scope.Season = "spring";      //開始季節spring
+        
+        $scope.WeekNameSetting = function () {
+    
+            var month = 3 + Math.floor($scope.gameWeek / 4);
+            var week = $scope.gameWeek % 4;
+            
+            month = (month > 12) ? month = month - 12 : month;
+            var tempSeason = $scope.Season;
+            //season & music
+            if (2 <= month && month <= 4){
+                $scope.Season = "spring";
+            }else if (5 <= month && month <= 7){
+                $scope.Season = "summer";
+            } else if (8 <= month && month <= 10){
+                $scope.Season = "fall";
+            } else if (11 <= month || month == 1){
+                $scope.Season = "winter";
+            }
+            //判斷特殊事件
+            if (typeof $scope.solar_terms !== 'undefined') {
+               
+                var thisterm = $scope.solar_terms.filter(function (item) {
+                    return item.month == month;
+                });
+                $scope.solar_term_Name = thisterm[0].terms; //節氣名稱
+                if (thisterm[0].randomWeek == week + 1 && $scope.WeekChange) {
+                    $scope.solar_term_Event = thisterm[0].event_name;
+                    $scope.Music["base"].volume = 0.85;
+                    $scope.Music["event"].play();
+                    
+                } else {
+                    if ($scope.WeekChange)
+                        $scope.solar_term_Event = "-";
+                    else
+                        $scope.Music["base"].volume = 1;
+                }
+            }
+
+            //week name
+            switch(week) {
+                case 0:
+                    week = "一"
+                    break;
+                case 1:
+                    week = "二"
+                    break;
+                case 2:
+                    week = "三"
+                    break;
+                case 3:
+                    week = "四"
+                    break;
+            }
+            $scope.WeekName = month + '月第' + week + '周';
+        };
+
+        //送出按鈕事件設定
+        $scope.role1_check = false;
+        $scope.role2_check = false;
+        $scope.role3_check = false;
+        $scope.role4_check = false;
+
+        //限制生產數量
+        $scope.number_litmit = function (number) {
+
+            if ((400 - ($scope.game_data['Manufacturer'].ProductItem['dumpling'].Stock
+                        + $scope.game_data['Manufacturer'].ProductItem['riceball'].Stock
+                        + $scope.game_data['Manufacturer'].ProductItem['salad'].Stock)
+                     - ($scope.game_data.Manufacturer.ProductItem.dumpling.Distribute
+                        + $scope.game_data.Manufacturer.ProductItem.riceball.Distribute
+                        + $scope.game_data.Manufacturer.ProductItem.salad.Distribute)
+                       ) < 0) {
+                $scope.game_data.Manufacturer.ProductItem.dumpling.Distribute = 0;
+                $scope.game_data.Manufacturer.ProductItem.riceball.Distribute = 0;
+                $scope.game_data.Manufacturer.ProductItem.salad.Distribute = 0;
+                alert('已超出工廠總產能上限400，請重新設定!');
+            } else {
+                if ($scope.game_data.Manufacturer.ProductItem.dumpling.Distribute > 99) {
+                    $scope.game_data.Manufacturer.ProductItem.dumpling.Distribute = 99;
+                }
+                if ($scope.game_data.Manufacturer.ProductItem.riceball.Distribute > 99) {
+                    $scope.game_data.Manufacturer.ProductItem.riceball.Distribute = 99;
+                }
+                if ($scope.game_data.Manufacturer.ProductItem.salad.Distribute > 99) {
+                    $scope.game_data.Manufacturer.ProductItem.salad.Distribute = 99;
+                }
+            }
+        }
+        //限制通路配送數量
+        $scope.Retailer_litmit = function (number) {
+
+            if ((180 - ($scope.game_data['Retailer'].ProductItem['dumpling'].Stock
+                        + $scope.game_data['Retailer'].ProductItem['riceball'].Stock
+                        + $scope.game_data['Retailer'].ProductItem['salad'].Stock)
+                     - ($scope.game_data.Retailer.ProductItem.dumpling.Distribute
+                        + $scope.game_data.Retailer.ProductItem.riceball.Distribute
+                        + $scope.game_data.Retailer.ProductItem.salad.Distribute)
+                       ) < 0) {
+                $scope.game_data.Retailer.ProductItem.dumpling.Distribute = 0;
+                $scope.game_data.Retailer.ProductItem.riceball.Distribute = 0;
+                $scope.game_data.Retailer.ProductItem.salad.Distribute = 0;
+                alert('預計配送數量不能超過總庫存量，請重新設定!');
+            }
+        }
+
+        //限制通路配送數量
+        $scope.Distribution_litmit = function (number) {
+
+            if ((400 - ($scope.game_data['Distribution'].ProductItem['dumpling'].Stock
+                        + $scope.game_data['Distribution'].ProductItem['riceball'].Stock
+                        + $scope.game_data['Distribution'].ProductItem['salad'].Stock)
+                     - ($scope.game_data.Distribution.ProductItem.dumpling.Distribute
+                        + $scope.game_data.Distribution.ProductItem.riceball.Distribute
+                        + $scope.game_data.Distribution.ProductItem.salad.Distribute)
+                       ) < 0) {
+                $scope.game_data.Distribution.ProductItem.dumpling.Distribute = 0;
+                $scope.game_data.Distribution.ProductItem.riceball.Distribute = 0;
+                $scope.game_data.Distribution.ProductItem.salad.Distribute = 0;
+                alert('預計配送數量不能超過總庫存量，請重新設定!');
+            }
+        }
+        
+        //暫停事件
+        $scope.PauseEvent = false;
+        $scope.gamePause = function () {
+            $scope.PauseEvent = !$scope.PauseEvent;
+            console.log('gamePause', $scope.PauseEvent);
+            if (!$scope.PauseEvent) {
+              setTimeout($scope.GameClientLoop, 1000);
+            };
+        };
+
+        }
+</script>
+<div ng-app ng-controller="mainCtrl">
+
+
+    <div class="main_area_1" ng-show="getStep('step1')">
+        <div class="logo">
+            <div class="left_logo"><img src="@Url.Content("~/Content/images/logo.png")"></div>
+            <div class="top_logo"><h1>供應鏈模擬系統</h1><span>SUPPLY CHAIN SIMULATION SYSTEM</span></div>
+        </div>
+        <div class="main">
+            <!--step1-->
+            <div class="LoginForm step1">
+                <div class="form-group">
+                    <label>員工代號：</label><input type="text" ng-model='User.userNo'>
+                </div>
+                <div class="form-group">
+                    <label>員工密碼：</label><input type="password" ng-model='User.password'>
+                </div>
+                <div class="form-group">
+                    <label>分組代碼：</label><input type="text" ng-model='User.RoomId'>
+                </div>
+                <div class="button-group">
+                    <div class="mode one active" ng-click="gameType('one')" style="width:230px">單人模式</div>
+                    @*<div class="mode multi" ng-click="gameType('four')">四人模式</div>*@
+                </div>
+                <div class="button-group">
+                    <input type="submit" value="進入系統" ng-click="Login()" />
+                </div>
+            </div>
+        </div>
+        <div class="copyright">版權所有 © 2017 LAUREL CORP. All Rights Reserved.</div>
+    </div>
+    <div class="main_area_1" ng-show="getStep('step2')">
+        <div class="logo">
+            <div class="left_logo"><img src="@Url.Content("~/Content/images/logo.png")"></div>
+            <div class="top_logo"><h1>供應鏈模擬系統</h1><span>SUPPLY CHAIN SIMULATION SYSTEM</span></div>
+        </div>
+        <div class="main">
+            <!--step2-->
+            <div class="roleSelect step2">
+
+                <div class="role" ng-click="Role_select('Manufacturer')">
+                    <div class="role1">
+                        <img src="@Url.Content("~/Content/images/role1.png")" />
+                        <h1>工廠</h1>
+                        <span>Manufacturer</span>
+                    </div>
+                    <div class="player">玩家:{{PlayerData['Manufacturer'].Name || '尚未選擇'}}</div>
+                </div>
+                <div class="role">
+                    <div class="role2" ng-click="Role_select('Distribution')">
+                        <img src="@Url.Content("~/Content/images/role2.png")" />
+                        <h1>發貨中心</h1>
+                        <span>Distribution Center</span>
+                    </div>
+                    <div class="player">玩家:{{PlayerData['Distribution'].Name || '尚未選擇'}}</div>
+                </div>
+                <div class="role">
+                    <div class="role3" ng-click="Role_select('Wholesale')">
+                        <img src="@Url.Content("~/Content/images/role3.png")" />
+                        <h1>營業所</h1>
+                        <span>Wholesale</span>
+                    </div>
+                    <div class="player">玩家:{{PlayerData['Wholesale'].Name || '尚未選擇'}}</div>
+                </div>
+                <div class="role">
+                    <div class="role4" ng-click="Role_select('Retailer')">
+                        <img src="@Url.Content("~/Content/images/role4.png")" />
+                        <h1>C 通路</h1>
+                        <span>Retailer</span>
+                    </div>
+                    <div class="player">玩家:{{PlayerData['Retailer'].Name || '尚未選擇'}}</div>
+                </div>
+
+                <div class="button-group">
+                    <input type="submit" value="開始" ng-class="(IsGameStart)?'enable':'disabled'" ng-click="game_start()" />
+                </div>
+            </div>
+        </div>
+        <div class="copyright">版權所有 © 2017 LAUREL CORP. All Rights Reserved.</div>
+    </div>
+    <!--遊戲主畫面-->
+    <div class="game_area step3"ng-class="Season" ng-show="getStep('step3')">
+
+        <div class="game_info">
+            <img src="@Url.Content("~/Content/images/logo.png")">
+            <div class="time">現在時間：{{WeekName}}</div>
+            <div class="time_info">
+                <span style="float:right">計時倒數：<strong style="font-size:22px;color:#ED1B24">{{Timecount}}</strong> 秒</span>
+                <span style="float:left">目前盈餘金額：<strong style="color:#1E7BDA">99,999</strong>元 &nbsp;|&nbsp;累積罰款金額：<strong style="color:#F343A6">99,999</strong>元 </span>
+            </div>
+            <div class="leave" ng-click="gamePause()">{{PauseEvent?"繼續":"暫停"}}</div>
+        </div>
+        <div class="game_event">
+            <div style="text-align:right;padding-right:15vw">目前節氣：{{solar_term_Name}}</div>
+            <div style="text-align:left;padding-left:15vw">突發事件：{{solar_term_Event}}</div>
+        </div>
+        <div class="gmae_board">
+            <div class="left">
+                <div class="top">
+                    <img src="@Url.Content("~/Content/images/role1.png")" />
+                    <span>工廠</span>
+                </div>
+                <div class="bottom">
+                    <img src="@Url.Content("~/Content/images/role4.png")" />
+                    <span>通路</span>
+                </div>
+            </div>
+            <div class="center">
+                <label class="preload">
+                    <span class="pre_car1"></span>
+                    <img src="@Url.Content("~/Content/images/pre.png")" />
+                </label>
+                <!--工廠-->
+                <div id="gmae_board_role1" class="gmae_board_role1">
+                   <div class="flexitem flex4">
+                       <div>商品</div>
+                       <div>需求</div>
+                       <div>生產中</div>
+                       <div>生產</div>
+                   </div>
+                    <div class="flexitem flex4">
+                        <div>餃類</div>
+                        <div class="count">{{game_data['Manufacturer'].ProductItem['dumpling'].Require}}</div>
+                        <div class="count">{{game_data['Manufacturer'].ProductItem['dumpling'].Stock}}</div>
+                        <div><input type="number" min="0" ng-disabled="role1_check" ng-change="number_litmit()" ng-model="game_data.Manufacturer.ProductItem.dumpling.Distribute" /></div>
+                    </div>
+                    <div class="flexitem flex4">
+                        <div>湯圓</div>
+                        <div class="count">{{game_data['Manufacturer'].ProductItem['riceball'].Require}}</div>
+                        <div class="count">{{game_data['Manufacturer'].ProductItem['riceball'].Stock}}</div>
+                        <div><input type="number" ng-disabled="role1_check" min="0" ng-change="number_litmit()" ng-model="game_data.Manufacturer.ProductItem.riceball.Distribute" /></div>
+                    </div>
+                    <div class="flexitem flex4">
+                        <div>沙拉</div>
+                        <div class="count">{{game_data['Manufacturer'].ProductItem['salad'].Require}}</div>
+                        <div class="count">{{game_data['Manufacturer'].ProductItem['salad'].Stock}}</div>
+                        <div><input type="number" min="0" ng-disabled="role1_check" ng-change="number_litmit()" ng-model="game_data.Manufacturer.ProductItem.salad.Distribute" /></div>
+                    </div>
+                    <div class="flexitem flex3">
+                        <div>總產能：<span class="count">{{(game_data['Manufacturer'].ProductItem['dumpling'].Stock + game_data['Manufacturer'].ProductItem['riceball'].Stock + game_data['Manufacturer'].ProductItem['salad'].Stock) + (game_data.Manufacturer.ProductItem.dumpling.Distribute + game_data.Manufacturer.ProductItem.riceball.Distribute + game_data.Manufacturer.ProductItem.salad.Distribute)}}</span></div>
+                        <div>生產中：<span class="count">{{(game_data['Manufacturer'].ProductItem['dumpling'].Stock + game_data['Manufacturer'].ProductItem['riceball'].Stock + game_data['Manufacturer'].ProductItem['salad'].Stock)}}</span></div>
+                        <div>未使用：<span class="count">{{ 400 - (game_data['Manufacturer'].ProductItem['dumpling'].Stock + game_data['Manufacturer'].ProductItem['riceball'].Stock + game_data['Manufacturer'].ProductItem['salad'].Stock) - (game_data.Manufacturer.ProductItem.dumpling.Distribute + game_data.Manufacturer.ProductItem.riceball.Distribute + game_data.Manufacturer.ProductItem.salad.Distribute)}}</span></div>
+                    </div>
+                    <div class="flexitem flex1">
+                        <div class="round_submit" ng-click="role1_check=!role1_check">生產送出</div>
+                    </div>
+                </div>
+                <!--發貨中心-->
+                <div id="gmae_board_role2" class="gmae_board_role2">
+                    <div class="flexitem flex4">
+                        <div>商品</div>
+                        <div>需求</div>
+                        <div>庫存</div>
+                        <div>配送</div>
+                        <div>出貨</div>
+                    </div>
+                    <div class="flexitem flex4">
+                        <div>餃類</div>
+                        <div class="count">{{game_data['Distribution'].ProductItem['dumpling'].Require}}</div>
+                        <div class="count" ng-class="(game_data.Distribution.ProductItem.dumpling.Stock < 0)?'red':''">{{game_data['Distribution'].ProductItem['dumpling'].Stock}}</div>
+                        <div><input type="number" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()"  ng-model="game_data.Distribution.ProductItem.dumpling.Distribute"/></div>
+                        <div><input type="number" min="0" ng-model="game_data.Distribution.ProductItem.dumpling.Shipping" /></div>
+                    </div>
+                    <div class="flexitem flex4">
+                        <div>湯圓</div>
+                        <div class="count">{{game_data['Distribution'].ProductItem['riceball'].Require}}</div>
+                        <div class="count" ng-class="(game_data.Distribution.ProductItem.riceball.Stock < 0)?'red':''">{{game_data['Distribution'].ProductItem['riceball'].Stock}}</div>
+                        <div><input type="number" ng-disabled="role2_check" min="0" ng-change="Distribution_litmit()"  ng-model="game_data.Distribution.ProductItem.riceball.Distribute" /></div>
+                        <div><input type="number" min="0" ng-model="game_data.Distribution.ProductItem.riceball.Shipping" /></div>
+                    </div>
+                    <div class="flexitem flex4">
+                        <div>沙拉</div>
+                        <div class="count">{{game_data['Distribution'].ProductItem['salad'].Require}}</div>
+                        <div class="count" ng-class="(game_data.Distribution.ProductItem.salad.Stock < 0)?'red':''">{{game_data['Distribution'].ProductItem['salad'].Stock}}</div>
+                        <div><input type="number" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()"  ng-model="game_data.Distribution.ProductItem.salad.Distribute" /></div>
+                        <div><input type="number" min="0" ng-model="game_data.Distribution.ProductItem.salad.Shipping"/></div>
+                    </div>
+                    <div class="flexitem flex3">
+                        <div>總產能：<span class="count">400</span></div>
+                        <div>庫存中：<span class="count">{{(game_data['Distribution'].ProductItem['dumpling'].Stock + game_data['Distribution'].ProductItem['riceball'].Stock + game_data['Distribution'].ProductItem['salad'].Stock)}}</span></div>
+                        <div>未使用：<span class="count">{{400 - ((game_data['Distribution'].ProductItem['dumpling'].Stock + game_data['Distribution'].ProductItem['riceball'].Stock + game_data['Distribution'].ProductItem['salad'].Stock) > 0 ? (game_data['Distribution'].ProductItem['dumpling'].Stock + game_data['Distribution'].ProductItem['riceball'].Stock + game_data['Distribution'].ProductItem['salad'].Stock) : 0)}}</span></div>
+                    </div>
+                    <div class="flexitem flex1">
+                        <div class="round_submit" ng-click="role2_check=!role2_check">配送送出</div>
+                    </div>
+                </div>
+                <!--通路-->
+                <div id="gmae_board_role3" class="gmae_board_role3">
+                    <div class="flexitem flex4">
+                        <div>商品</div>
+                        <div>需求</div>
+                        <div>庫存</div>
+                        <div>配送</div>
+                    </div>
+                    <div class="flexitem flex4">
+                        <div>餃類</div>
+                        <div class="count">{{game_data['Retailer'].ProductItem['dumpling'].Require}}</div>
+                        <div class="count" ng-class="(game_data.Retailer.ProductItem.dumpling.Stock < 0)?'red':''">{{game_data['Retailer'].ProductItem['dumpling'].Stock}}</div>
+                        <div><input type="number" min="0" ng-disabled="role3_check" ng-change="Retailer_litmit()"  ng-model="game_data.Retailer.ProductItem.dumpling.Distribute" /></div>
+                    </div>
+                    <div class="flexitem flex4">
+                        <div>湯圓</div>
+                        <div class="count">{{game_data['Retailer'].ProductItem['riceball'].Require}}</div>
+                        <div class="count" ng-class="(game_data.Retailer.ProductItem.riceball.Stock < 0)?'red':''">{{game_data['Retailer'].ProductItem['riceball'].Stock}}</div>
+                        <div><input type="number" min="0" ng-disabled="role3_check" ng-change="Retailer_litmit()"  ng-model="game_data.Retailer.ProductItem.riceball.Distribute" /></div>
+                    </div>
+                    <div class="flexitem flex4">
+                        <div>沙拉</div>
+                        <div class="count">{{game_data['Retailer'].ProductItem['salad'].Require}}</div>
+                        <div class="count" ng-class="(game_data.Retailer.ProductItem.salad.Stock < 0)?'red':''">{{game_data['Retailer'].ProductItem['salad'].Stock}}</div>
+                        <div><input type="number" min="0" ng-disabled="role3_check" ng-change="Retailer_litmit()"  ng-model="game_data.Retailer.ProductItem.salad.Distribute" /></div>
+                    </div>
+                    <div class="flexitem flex3">
+                        <div>總庫存：<span class="count">180</span></div>
+                        <div>庫存中：<span class="count">{{(game_data['Retailer'].ProductItem['dumpling'].Stock + game_data['Retailer'].ProductItem['riceball'].Stock + game_data['Retailer'].ProductItem['salad'].Stock)}}</span></div>
+                        <div>未使用：<span class="count">{{ 180 - ((game_data['Retailer'].ProductItem['dumpling'].Stock + game_data['Retailer'].ProductItem['riceball'].Stock + game_data['Retailer'].ProductItem['salad'].Stock) > 0 ? (game_data['Retailer'].ProductItem['dumpling'].Stock + game_data['Retailer'].ProductItem['riceball'].Stock + game_data['Retailer'].ProductItem['salad'].Stock) : 0)}}</span></div>
+                    </div>
+                    <div class="flexitem flex1">
+                        <div class="round_submit" ng-click="role3_check=!role3_check">配送送出</div>
+                    </div>
+                </div>
+                <!--營業所-->
+                <div id="gmae_board_role4" class="gmae_board_role4">
+                    <div class="flexitem flex4">
+                        <div>商品</div>
+                        <div>需求</div>
+                        <div>庫存</div>
+                        <div>配送</div>
+                        <div>出貨</div>
+                    </div>
+                    <div class="flexitem flex4">
+                        <div>餃類</div>
+                        <div class="count">{{game_data['Wholesale'].ProductItem['dumpling'].Require}}</div>
+                        <div class="count" ng-class="(game_data.Wholesale.ProductItem.dumpling.Stock < 0)?'red':''">{{game_data['Wholesale'].ProductItem['dumpling'].Stock}}</div>
+                        <div><input type="number" min="0" ng-disabled="role4_check" ng-model="game_data.Wholesale.ProductItem.dumpling.Distribute" /></div>
+                        <div><input type="number" min="0" ng-model="game_data.Wholesale.ProductItem.dumpling.Shipping" /></div>
+                    </div>
+                    <div class="flexitem flex4">
+                        <div>湯圓</div>
+                        <div class="count">{{game_data['Wholesale'].ProductItem['riceball'].Require}}</div>
+                        <div class="count" ng-class="(game_data.Wholesale.ProductItem.riceball.Stock < 0)?'red':''">{{game_data['Wholesale'].ProductItem['riceball'].Stock}}</div>
+                        <div><input type="number" min="0" ng-disabled="role4_check" ng-model="game_data.Wholesale.ProductItem.riceball.Distribute" /></div>
+                        <div><input type="number" min="0" ng-model="game_data.Wholesale.ProductItem.riceball.Shipping" /></div>
+                    </div>
+                    <div class="flexitem flex4">
+                        <div>沙拉</div>
+                        <div class="count">{{game_data['Wholesale'].ProductItem['salad'].Require}}</div>
+                        <div class="count" ng-class="(game_data.Wholesale.ProductItem.salad.Stock < 0)?'red':''">{{game_data['Wholesale'].ProductItem['salad'].Stock}}</div>
+                        <div><input type="number" min="0" ng-disabled="role4_check" ng-model="game_data.Wholesale.ProductItem.salad.Distribute" /></div>
+                        <div><input type="number" min="0" ng-model="game_data.Wholesale.ProductItem.salad.Shipping" /></div>
+                    </div>
+                    <div class="flexitem flex3">
+                        <div>總庫存：<span class="count">250</span></div>
+                        <div>庫存中：<span class="count">{{(game_data['Wholesale'].ProductItem['dumpling'].Stock + game_data['Wholesale'].ProductItem['riceball'].Stock + game_data['Wholesale'].ProductItem['salad'].Stock)}}</span></div>
+                        <div>未使用：<span class="count">{{250 - ((game_data['Wholesale'].ProductItem['dumpling'].Stock + game_data['Wholesale'].ProductItem['riceball'].Stock + game_data['Wholesale'].ProductItem['salad'].Stock) > 0 ? (game_data['Wholesale'].ProductItem['dumpling'].Stock + game_data['Wholesale'].ProductItem['riceball'].Stock + game_data['Wholesale'].ProductItem['salad'].Stock) : 0)}}</span></div>
+                    </div>
+                    <div class="flexitem flex1">
+                        <div class="round_submit" ng-click="role4_check=!role4_check">配送送出</div>
+                    </div>
+                </div>
+                <label class="nextload">
+                    <img src="@Url.Content("~/Content/images/next.png")" />
+                    <span class="pre_car3"></span>
+                </label>
+            </div>
+            <div class="right">
+                <div class="top">
+                    <img src="@Url.Content("~/Content/images/role2.png")" />
+                    <span>發貨中心</span>
+                </div>
+                <img src="@Url.Content("~/Content/images/vertical.png")">
+                <span class="pre_car2"></span>
+                <div class="bottom" style="position:relative;top:-50px;">
+                    <img src="@Url.Content("~/Content/images/role3.png")" />
+                    <span>營業所</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!--結果畫面-->
+    <div class="main_area_2 step4" ng-show="getStep('step4')">
+        <div class="logo">
+            <div class="left_logo"><img src="@Url.Content("~/Content/images/logo.png")"></div>
+            <div class="top_logo"><h1>成效分析</h1></div>
+        </div>
+        <div class="main">
+            <!--step1-->
+            <div class="result step4">
+
+            </div>
+        </div>
+        <div class="copyright">版權所有 © 2017 LAUREL CORP. All Rights Reserved.</div>
+    </div>
+
+    <script>
+
+    $('.one').click(function () {
+        $('#Mode').val('one');
+        $(this).addClass('active');
+        $(this).siblings().removeClass('active');
+    });
+    $('.multi').click(function () {
+        $('#Mode').val('multi');
+        $(this).addClass('active');
+        $(this).siblings().removeClass('active');
+    });
+
+
+    </script>
+</div>
+
+
+<script src="@Url.Content("~/Scripts/jquery.signalR-2.2.2.min.js")"></script>
+<script src="~/signalr/hubs"></script>
+
+<div id="usersCount"></div>
+@*<script>
+$(function () {
+    var userActivity = $.connection.laurelHub;
+  userActivity.client.getTime = function (count) {
+      console.log(count);
+  };
+  $.connection.hub.start();
+});
+</script>*@
