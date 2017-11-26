@@ -13,6 +13,7 @@ namespace Laurel_game.Models
         public string userNo { get; set; }    //員工編號
         public string password { get; set; }  //密碼
         public string Name { get; set; }  //密碼
+        public bool AI { get; set; } //電腦
         public UserModel()
         {
             this.ConnectID = "";
@@ -21,6 +22,7 @@ namespace Laurel_game.Models
             this.userNo = "";
             this.password = "";
             this.Name = "";
+            this.AI = false;
         }
     }
 

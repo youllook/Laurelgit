@@ -33,10 +33,25 @@ namespace Laurel_game.Hubs
 
         #region 
         //登入 USed!
-        public Object Login(UserModel user) {
+        public Object Login(UserModel user,string type) {
 
       
             if (UserList.Where(p => p.userNo == user.userNo && p.password == user.password).ToList().Count() == 0) {
+
+                //檢查房間
+                var Room = RoomList.Where(p => p.RoomId == user.RoomID).FirstOrDefault();
+                if (Room == null)
+                {
+                    //建立Room
+                    RoomModel room = new RoomModel()
+                    {
+                        RoomId = user.RoomID,
+                        Mode = type,
+                        StartTime = DateTime.Now
+                    };
+                    RoomList.Add(room);
+                }
+
 
                 var usermodel = UserService.Login(user.userNo, user.password);
                 if (usermodel != null) {
@@ -69,20 +84,73 @@ namespace Laurel_game.Hubs
         //選擇角色 USed!
         public bool RoleSelect(UserModel user)
         {
+            var Room = RoomList.Where(p => p.RoomId == user.RoomID).FirstOrDefault();
+            if (Room != null)
+            {
+                if (Room.Mode == "one")
+                {
+                    var user_data = UserList.Where(p => p.userNo == user.userNo && p.password == user.password).FirstOrDefault();
+                    //若已經有設定電腦則交換
+                    var changeCom = UserList.Where(p => p.Role == user.Role).FirstOrDefault();
+                    if (changeCom != null)
+                    {
+                        changeCom.Role = user_data.Role;
+                    }
+                    //寫入新腳色選擇
+                    user_data.Role = user.Role;
+                   
+                    //塞入電腦OR Check
+                    AddComputer(user.RoomID, user.Role);
+                    DisplayRoles(user.RoomID);
+                    return true;
+                }
+                else
+                {
+                    var user_data = UserList.Where(p => p.userNo == user.userNo && p.password == user.password).FirstOrDefault();
+                    user_data.Role = user.Role;
+                    DisplayRoles(user.RoomID);
+                    return true;
+                }
+
+            }
+
+            return false;
+
             //角色已被選擇
-            var RoleCount = UserList.Where(p => p.Role == user.Role && p.RoomID == user.RoomID).ToList().Count();
-            if (RoleCount == 0)
-            {
-                var user_data = UserList.Where(p => p.userNo == user.userNo && p.password == user.password).FirstOrDefault();
-                user_data.Role = user.Role;
-                DisplayRoles(user.RoomID);
-                return true;
-            }
-            else
-            {
-                DisplayRoles(user.RoomID);
-                return false;
-            }
+            //var RoleCount = UserList.Where(p => p.Role == user.Role && p.RoomID == user.RoomID).ToList().Count();
+            //if (RoleCount == 0)
+            //{
+            //    var Room = RoomList.Where(p => p.RoomId == user.RoomID).FirstOrDefault();
+            //    if (Room != null)
+            //    {
+            //        if (Room.Mode == "one")
+            //        {
+            //            var user_data = UserList.Where(p => p.userNo == user.userNo && p.password == user.password).FirstOrDefault();
+            //            user_data.Role = user.Role;
+            //            //塞入電腦
+            //            AddComputer(user.RoomID,user.Role);
+            //            DisplayRoles(user.RoomID);
+            //            return true;
+            //        }else
+            //        {
+            //            var user_data = UserList.Where(p => p.userNo == user.userNo && p.password == user.password).FirstOrDefault();
+            //            user_data.Role = user.Role;
+            //            DisplayRoles(user.RoomID);
+            //            return true;
+            //        }
+
+            //    }
+            //    else
+            //    {
+            //        DisplayRoles(user.RoomID);
+            //        return false;
+            //    }
+            //}
+            //else
+            //{
+            //    DisplayRoles(user.RoomID);
+            //    return false;
+            //}
                 
         }
         //顯示玩家角色 USed!
@@ -95,18 +163,43 @@ namespace Laurel_game.Hubs
                 Clients.Group(RoomID).ShowRole(user_list);
             }
         }
+        //加入電腦
+        public void AddComputer(string RoomID,string role)
+        {
+            string[] storageNameList = { "Manufacturer", "Distribution", "Wholesale", "Retailer" };
+ 
+            foreach (var name in storageNameList)
+            {
+                if (name != role)
+                {
+                    var user = UserList.Where(p => p.Role == name).FirstOrDefault();
+                    if (user != null)
+                    {
+                        user.Role = name;
+                    }else
+                    {
+                        UserModel com = new UserModel()
+                        {
+                            ConnectID = "",
+                            Name = name + "(電腦)",
+                            password = "",
+                            Role = name,
+                            RoomID = RoomID,
+                            userNo = Guid.NewGuid().ToString(),
+                            AI = true
+                        };
+                        UserList.Add(com);
+                    }
+                }
+                
+            }
+
+        }
         //遊戲開始 USed!
         public object Game_Init(string RoomID)
         {
-               //建立Room
-                RoomModel room = new RoomModel()
-                {
-                    RoomId = RoomID,
-                    //Mode = mode,
-                    StartTime = DateTime.Now
-                };
-                RoomList.Add(room);
 
+                var room = RoomList.Where(p => p.RoomId == RoomID).FirstOrDefault();
                 //建立各倉儲
                 //產生初始資料
                 ProductItem pItem = new ProductItem()

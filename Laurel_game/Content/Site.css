@@ -12,7 +12,7 @@
 .button-group .mode{background:#828282;color:#FFF600;text-align:center;width:115px;height:40px;font-size:16px;display:inline-block;line-height:35px;cursor:pointer}
 .button-group .mode:first-child{margin-right:5px;}
 .button-group .mode:hover,.button-group .active{background:#000}
-.button-group .submit{background:#000000;color:#FFF600;text-align:center;width:236px;height:40px;border:none;font-size:16px;cursor:pointer}
+.button-group .submit{background:#1A632F;color:#FFF600;text-align:center;width:236px;height:40px;border:none;font-size:16px;cursor:pointer}
 .copyright{font-size:14px;color:#fff;position:absolute;bottom: 10px;width: 100%;text-align: center;}
 
 .roleSelect{text-align:center;padding-top:80px;}

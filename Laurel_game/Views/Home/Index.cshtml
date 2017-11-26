@@ -8,9 +8,9 @@
     var mainCtrl = function ($scope, $rootScope, $http, $window) {
     
         $scope.User = {
-            userNo : '',
-            password: '',
-            RoomId: '1111'
+            userNo: '111',
+            password: '111',
+            RoomId: '1234'
         };
         
         var SingnalR_main = $.connection.laurelHub;
@@ -36,20 +36,21 @@
             console.log('Connection done!!');
 
             //執行遊戲初始
-            get_game_init().then(
-                (res) => {
-                    if (res) {
-                        $scope.nowStep = "step3";
-                        $scope.$apply();//refresh view             
-                    } else {
-                        console.log('game init error in success!');
-                    }
-                }, (error) => {
-                    console.log('game init error!');
-                }
-            );
+            //get_game_init().then(
+            //    (res) => {
+            //        if (res) {
+            //            $scope.nowStep = "step1";
+            //            $scope.$apply();//refresh view             
+            //        } else {
+            //            console.log('game init error in success!');
+            //        }
+            //    }, (error) => {
+            //        console.log('game init error!');
+            //    }
+            //);
         })
         .fail(function () {
+            alert('初始連線錯誤!請洽系統管理員')
             console.log('Connection error!')
         });
 
@@ -66,13 +67,14 @@
             
         };
         //login 
-        $scope.game_Type = "four";
+        $scope.game_Type = "one"; //遊戲模式
         $scope.Login = function () {
 
             if ($scope.User.userNo == '') { alert('請輸入員工代號!'); return; };
             if ($scope.User.password == '') { alert('請輸入員工密碼!'); return; };
             if ($scope.User.RoomId == '') { alert('請輸入分組代碼!'); return; };
-            SingnalR_main.server.login($scope.User).done(function (result) {
+            SingnalR_main.server.login($scope.User, $scope.game_Type).done(function (result) {
+                console.log('login result', result);
                 if (result) {
                     $scope.nowStep = "step2";
                     $scope.$apply();//refresh view
@@ -102,7 +104,7 @@
         $scope.IsGameStart = false;
         //接收角色資料顯示畫面
         SingnalR_main.client.showRole = function (result) {
-            console.log('showRole', result);
+            console.log('showRole result', result);
             for (var item in result) {
                 var role = result[item].Role;
                 $scope.PlayerData[role] = result[item];
@@ -112,6 +114,7 @@
                     $scope.IsGameStart = true;
                 };
             };
+            console.log('$scope.PlayerData', $scope.PlayerData)
             $scope.$apply();//refresh view
         };
         
@@ -120,7 +123,21 @@
             console.warn('[Check] IsGameStart', $scope.IsGameStart);
             console.warn('[Check] $scope.User', $scope.User);
             if ($scope.IsGameStart) {
-                SingnalR_main.server.gameStart($scope.User);
+                // SingnalR_main.server.gameStart($scope.User);
+                //執行遊戲初始
+                get_game_init().then(
+                    (res) => {
+                        if (res) {
+                            $scope.nowStep = "step3";
+                            $scope.$apply();//refresh view             
+                        } else {
+                            console.log('game init error in success!');
+                        }
+                    }, (error) => {
+                        console.log('game init error!');
+                    }
+                );
+
             } else {
                 alert('人數尚未到齊');
             };
@@ -419,7 +436,7 @@
                     @*<div class="mode multi" ng-click="gameType('four')">四人模式</div>*@
                 </div>
                 <div class="button-group">
-                    <input type="submit" value="進入系統" ng-click="Login()" />
+                    <input class="submit" type="submit" value="進入系統" ng-click="Login()" />
                 </div>
             </div>
         </div>
@@ -468,7 +485,7 @@
                 </div>
 
                 <div class="button-group">
-                    <input type="submit" value="開始" ng-class="(IsGameStart)?'enable':'disabled'" ng-click="game_start()" />
+                    <input class="submit" type="submit" value="開始" ng-class="(IsGameStart)?'enable':'disabled'" ng-click="game_start()" />
                 </div>
             </div>
         </div>
