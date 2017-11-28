@@ -1,4 +1,10 @@
-﻿    <!--------開發參考http://ithelp.ithome.com.tw/articles/10158681 -------------->
+﻿
+@{ 
+    Random rd = new Random();
+    int RandomNumber = rd.Next(1000, 9999);
+}
+
+   <!--------開發參考http://ithelp.ithome.com.tw/articles/10158681 -------------->
 
 <script>
 
@@ -6,13 +12,13 @@
 
     });
     var mainCtrl = function ($scope, $rootScope, $http, $window) {
-    
+
         $scope.User = {
-            userNo: '111',
-            password: '111',
-            RoomId: '1234'
+            userNo: 'guest',
+            password: '',
+            RoomId: '@RandomNumber'
         };
-        
+
         var SingnalR_main = $.connection.laurelHub;
 
         //SingnalR_main.client.GetTime = function (data) {
@@ -40,7 +46,7 @@
             //    (res) => {
             //        if (res) {
             //            $scope.nowStep = "step1";
-            //            $scope.$apply();//refresh view             
+            //            $scope.$apply();//refresh view
             //        } else {
             //            console.log('game init error in success!');
             //        }
@@ -64,14 +70,14 @@
                 return true;
             else
                 return false;
-            
+
         };
-        //login 
+        //login
         $scope.game_Type = "one"; //遊戲模式
         $scope.Login = function () {
 
             if ($scope.User.userNo == '') { alert('請輸入員工代號!'); return; };
-            if ($scope.User.password == '') { alert('請輸入員工密碼!'); return; };
+            if ($scope.User.password == '' && $scope.User.userNo != 'guest') { alert('請輸入員工密碼!'); return; };
             if ($scope.User.RoomId == '') { alert('請輸入分組代碼!'); return; };
             SingnalR_main.server.login($scope.User, $scope.game_Type).done(function (result) {
                 console.log('login result', result);
@@ -88,7 +94,7 @@
 
         //角色宣告 Manufacturer,Distribution,Wholesale,Retailer
         $scope.PlayerData = {};
-      
+
         //角色選擇
         $scope.Role_select = function (role) {
             $scope.User.role = role;
@@ -117,7 +123,7 @@
             console.log('$scope.PlayerData', $scope.PlayerData)
             $scope.$apply();//refresh view
         };
-        
+
         $scope.game_start = function () {
             console.warn('[Check] game_start');
             console.warn('[Check] IsGameStart', $scope.IsGameStart);
@@ -129,7 +135,7 @@
                     (res) => {
                         if (res) {
                             $scope.nowStep = "step3";
-                            $scope.$apply();//refresh view             
+                            $scope.$apply();//refresh view
                         } else {
                             console.log('game init error in success!');
                         }
@@ -165,11 +171,11 @@
                             $scope.Music["ini_bg"].pause();
                             $scope.Music["base"].loop = "loop";
                             //$scope.Music["base"].play();
-                            
+
                             //loopdataset
                             if (typeof $scope.room_data !== 'undefined') {
-                              $scope.TimeLoop = $scope.room_data.Countdown; //週期秒數
-                              $scope.Timecount = $scope.room_data.Countdown;     
+                                $scope.TimeLoop = $scope.room_data.Countdown; //週期秒數
+                                $scope.Timecount = $scope.room_data.Countdown;
                             }
 
                             $scope.GameClientLoop();
@@ -202,7 +208,7 @@
 
         $scope.GameClientLoop = function () {
 
-            if($scope.PauseEvent){
+            if ($scope.PauseEvent) {
                 return;
             }
             //console.log('week number', $scope.gameWeek);
@@ -217,7 +223,7 @@
                 $scope.WeekChange = true;
                 //送出資料取得更新後再執行
                 GameDataUpload('Distribution').then(
-                    (res) => { console.log('Promise GameDataUpload Success', res);},
+                    (res) => { console.log('Promise GameDataUpload Success', res); },
                     (error) => { console.log('GameDataUpload error', error); }
                 );
                 GameDataUpload('Manufacturer').then(
@@ -263,41 +269,49 @@
             setTimeout($scope.GameClientLoop, 1000);
         };
         // UpdateClienSettlement 結算 累計盈餘與累計罰金
+        $scope.income = 0;
+        $scope.fine = 0;
         SingnalR_main.client.updateClienSettlement = function (result) {
+            console.log('$scope.User:', $scope.User);
             console.log('updateClienSettlement result:', result);
+            var thisData = result[$scope.User.role];
+            if (thisData) {
+                $scope.income = thisData.income;
+                $scope.fine = thisData.fine;
+            }
             //refresh view
-            // $scope.$apply();
+            $scope.$apply();
         };
 
         $scope.gameWeek = 0;  //週數
         $scope.TimeLoop = 30 //週期秒數
         $scope.Timecount = $scope.TimeLoop; //週期秒數
-        
+
         //時間顯示，背景
         $scope.WeekChange = false;
         $scope.WeekName = "3月第一周"; //開始時間為3月第一周 結算時間為2月第四周 共計48周
         $scope.Season = "spring";      //開始季節spring
-        
+
         $scope.WeekNameSetting = function () {
-    
+
             var month = 3 + Math.floor($scope.gameWeek / 4);
             var week = $scope.gameWeek % 4;
-            
+
             month = (month > 12) ? month = month - 12 : month;
             var tempSeason = $scope.Season;
             //season & music
-            if (2 <= month && month <= 4){
+            if (2 <= month && month <= 4) {
                 $scope.Season = "spring";
-            }else if (5 <= month && month <= 7){
+            } else if (5 <= month && month <= 7) {
                 $scope.Season = "summer";
-            } else if (8 <= month && month <= 10){
+            } else if (8 <= month && month <= 10) {
                 $scope.Season = "fall";
-            } else if (11 <= month || month == 1){
+            } else if (11 <= month || month == 1) {
                 $scope.Season = "winter";
             }
             //判斷特殊事件
             if (typeof $scope.solar_terms !== 'undefined') {
-               
+
                 var thisterm = $scope.solar_terms.filter(function (item) {
                     return item.month == month;
                 });
@@ -306,7 +320,7 @@
                     $scope.solar_term_Event = thisterm[0].event_name;
                     $scope.Music["base"].volume = 0.85;
                     $scope.Music["event"].play();
-                    
+
                 } else {
                     if ($scope.WeekChange)
                         $scope.solar_term_Event = "-";
@@ -316,7 +330,7 @@
             }
 
             //week name
-            switch(week) {
+            switch (week) {
                 case 0:
                     week = "一"
                     break;
@@ -398,18 +412,18 @@
                 alert('預計配送數量不能超過總庫存量，請重新設定!');
             }
         }
-        
+
         //暫停事件
         $scope.PauseEvent = false;
         $scope.gamePause = function () {
             $scope.PauseEvent = !$scope.PauseEvent;
             console.log('gamePause', $scope.PauseEvent);
             if (!$scope.PauseEvent) {
-              setTimeout($scope.GameClientLoop, 1000);
+                setTimeout($scope.GameClientLoop, 1000);
             };
         };
 
-        }
+    }
 </script>
 <div ng-app ng-controller="mainCtrl">
 
@@ -499,7 +513,7 @@
             <div class="time">現在時間：{{WeekName}}</div>
             <div class="time_info">
                 <span style="float:right">計時倒數：<strong style="font-size:22px;color:#ED1B24">{{Timecount}}</strong> 秒</span>
-                <span style="float:left">目前盈餘金額：<strong style="color:#1E7BDA">99,999</strong>元 &nbsp;|&nbsp;累積罰款金額：<strong style="color:#F343A6">99,999</strong>元 </span>
+                <span style="float:left">目前盈餘金額：<strong style="color:#1E7BDA">{{income}}</strong>元 &nbsp;|&nbsp;累積罰款金額：<strong style="color:#F343A6">{{fine}}</strong>元 </span>
             </div>
             <div class="leave" ng-click="gamePause()">{{PauseEvent?"繼續":"暫停"}}</div>
         </div>
@@ -512,10 +526,12 @@
                 <div class="top">
                     <img src="@Url.Content("~/Content/images/role1.png")" />
                     <span>工廠</span>
+                    <span>{{PlayerData.Manufacturer.Name}}</span>
                 </div>
                 <div class="bottom">
                     <img src="@Url.Content("~/Content/images/role4.png")" />
                     <span>通路</span>
+                    <span>{{PlayerData.Retailer.Name}}</span>
                 </div>
             </div>
             <div class="center">
@@ -680,12 +696,14 @@
                 <div class="top">
                     <img src="@Url.Content("~/Content/images/role2.png")" />
                     <span>發貨中心</span>
+                    <span>{{PlayerData.Distribution.Name}}</span>
                 </div>
                 <img src="@Url.Content("~/Content/images/vertical.png")">
                 <span class="pre_car2"></span>
                 <div class="bottom" style="position:relative;top:-50px;">
                     <img src="@Url.Content("~/Content/images/role3.png")" />
                     <span>營業所</span>
+                    <span>{{PlayerData.Wholesale.Name}}</span>
                 </div>
             </div>
         </div>

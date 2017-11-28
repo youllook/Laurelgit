@@ -7,6 +7,7 @@ namespace Laurel_game.Models
 {
     public class RoomModel
     {
+        public string key { get; set; }
         public string RoomId { get; set; }             //房間id
         public string Mode { get; set; }               //模式 單人(one)/多人(multi)
         public int Week { get; set; }
@@ -17,6 +18,7 @@ namespace Laurel_game.Models
 
         public RoomModel()
         {
+            this.key = Guid.NewGuid().ToString();
             this.RoomId = "";
             this.Mode = "";
             this.Week = 0;

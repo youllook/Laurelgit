@@ -176,7 +176,9 @@ namespace Laurel_game.Hubs
                     if (user != null)
                     {
                         user.Role = name;
-                    }else
+                        user.Name = name + "(電腦)";
+                    }
+                    else
                     {
                         UserModel com = new UserModel()
                         {
@@ -268,6 +270,10 @@ namespace Laurel_game.Hubs
                         break;
                 }
             }
+            else
+            {
+                return false;
+            }
 
             //等待所有人資料更新
             if (StorageItgem.Manufacturer.IsUpdate &&
@@ -351,34 +357,60 @@ namespace Laurel_game.Hubs
                 {
                     switch (SpecEvent.product)
                     {
+                        //測試用邏輯
+                        //case "all":
+                        //    RetailerItem.dumpling.Require = 20;//rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                        //    RetailerItem.salad.Require = 25;//rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                        //    RetailerItem.riceball.Require = 30; //rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                        //    break;
+                        //case "salad":
+                        //    RetailerItem.dumpling.Require = 20;//rand.Next(60, 80);
+                        //    RetailerItem.salad.Require = 25;//rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                        //    RetailerItem.riceball.Require = 30;// rand.Next(60, 80);
+                        //    break;
+                        //case "dumpling":
+                        //    RetailerItem.dumpling.Require = 20;//rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                        //    RetailerItem.salad.Require = 25;//rand.Next(60, 80);
+                        //    RetailerItem.riceball.Require = 30; ;//rand.Next(60, 80);
+                        //    break;
+                        //case "riceball":
+                        //    RetailerItem.dumpling.Require += 20;//rand.Next(60, 80);
+                        //    RetailerItem.salad.Require += 25;//rand.Next(60, 80);
+                        //    RetailerItem.riceball.Require += 30; //rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                        //    break;
+
                         case "all":
-                            RetailerItem.dumpling.Require = 20;//rand.Next(SpecEvent.event_min, SpecEvent.event_max);
-                            RetailerItem.salad.Require = 25;//rand.Next(SpecEvent.event_min, SpecEvent.event_max);
-                            RetailerItem.riceball.Require = 30; //rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                            RetailerItem.dumpling.Require = rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                            RetailerItem.salad.Require = rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                            RetailerItem.riceball.Require = rand.Next(SpecEvent.event_min, SpecEvent.event_max);
                             break;
                         case "salad":
-                            RetailerItem.dumpling.Require = 20;//rand.Next(60, 80);
-                            RetailerItem.salad.Require = 25;//rand.Next(SpecEvent.event_min, SpecEvent.event_max);
-                            RetailerItem.riceball.Require = 30;// rand.Next(60, 80);
+                            RetailerItem.dumpling.Require = rand.Next(60, 80);
+                            RetailerItem.salad.Require = rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                            RetailerItem.riceball.Require = rand.Next(60, 80);
                             break;
                         case "dumpling":
-                            RetailerItem.dumpling.Require = 20;//rand.Next(SpecEvent.event_min, SpecEvent.event_max);
-                            RetailerItem.salad.Require = 25;//rand.Next(60, 80);
-                            RetailerItem.riceball.Require = 30; ;//rand.Next(60, 80);
+                            RetailerItem.dumpling.Require = rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                            RetailerItem.salad.Require = rand.Next(60, 80);
+                            RetailerItem.riceball.Require = rand.Next(60, 80);
                             break;
                         case "riceball":
-                            RetailerItem.dumpling.Require += 20;//rand.Next(60, 80);
-                            RetailerItem.salad.Require += 25;//rand.Next(60, 80);
-                            RetailerItem.riceball.Require += 30; //rand.Next(SpecEvent.event_min, SpecEvent.event_max);
+                            RetailerItem.dumpling.Require = rand.Next(60, 80);
+                            RetailerItem.salad.Require = rand.Next(60, 80);
+                            RetailerItem.riceball.Require = rand.Next(SpecEvent.event_min, SpecEvent.event_max);
                             break;
                     }
 
                 }
                 else
                 {
-                    RetailerItem.dumpling.Require = 20; //rand.Next(60, 80);
-                    RetailerItem.salad.Require = 25;    //rand.Next(60, 80);
-                    RetailerItem.riceball.Require = 30; //rand.Next(60, 80);
+                    //測試用邏輯
+                    //RetailerItem.dumpling.Require = 20;
+                    //RetailerItem.salad.Require = 25;
+                    //RetailerItem.riceball.Require = 30;
+                    RetailerItem.dumpling.Require = rand.Next(60, 80);
+                    RetailerItem.salad.Require = rand.Next(60, 80);
+                    RetailerItem.riceball.Require = rand.Next(60, 80);
                 }
 
                 #region[ GameRecord ] Retailer 邏輯
@@ -401,6 +433,7 @@ namespace Laurel_game.Hubs
 
             // 遊戲紀錄儲存
             GameRecordList.Add(GameRecord);
+            DataSave((RoomID));
 
         }
         //營業所
@@ -632,6 +665,19 @@ namespace Laurel_game.Hubs
       
 
         }
+        //存檔
+        public void DataSave(string Roomid)
+        {
+            var roomData = RoomList.Where(p => p.RoomId == Roomid).FirstOrDefault();
+            if (roomData != null)
+            {
+                string filename = roomData.key + "_" + roomData.RoomId;
+                var thisGameData = GameRecordList.Where(p => p.RoomId == Roomid).ToList();
+                string Content = Newtonsoft.Json.JsonConvert.SerializeObject(thisGameData);
+                string filepath = Library.FileLib.rootPath + "save/" + filename + ".txt";
+                Library.FileLib.WriteOverFile(filepath, Content);
+            }
+        }
         #endregion
 
         // 各單位累計盈餘與罰金計算
@@ -715,6 +761,36 @@ namespace Laurel_game.Hubs
                 UserList.Remove(Delete_User);
                 //若在選角的時候　斷線刪除該角色
                 DisplayRoles(Delete_User.RoomID);
+
+                var RoomData = RoomList.Where(p => p.RoomId == Delete_User.RoomID).FirstOrDefault();
+                //單人模式 - 檢查是否有遊戲紀錄，有的話全部刪除
+                if (RoomData.Mode == "one")
+                {
+                    //刪除倉儲
+                    var thisStoreges = StorageList.Where(p => p.RoomId == RoomData.RoomId).ToList();
+                    foreach (var st in thisStoreges)
+                    {
+                        StorageList.Remove(st);
+                    }
+                    //刪除遊戲紀錄
+                    var thisRecord = GameRecordList.Where(p => p.RoomId == RoomData.RoomId).ToList();
+                    foreach (var rc in thisRecord)
+                    {
+                        GameRecordList.Remove(rc);
+                    }
+                    //刪除電腦玩家
+                    var thisUsers = UserList.Where(p => p.RoomID == RoomData.RoomId).ToList();
+                    foreach (var us in thisUsers)
+                    {
+                        UserList.Remove(us);
+                    }
+                    //刪除Room
+                    RoomList.Remove(RoomData);
+                }
+                else
+                {
+                    //待補...
+                }
             }
 
 
