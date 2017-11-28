@@ -30,6 +30,18 @@ namespace Laurel_game.Service
                       userNo = user.No
                     };
                     return usermodel;
+                }else
+                {
+                    if (No.IndexOf("guest") > -1)
+                    {
+                        UserModel usermodel = new UserModel()
+                        {
+                            Name = "訪客 " + No,
+                            password = "",
+                            userNo = No
+                        };
+                        return usermodel;
+                    }
                 }
             }
             return null;

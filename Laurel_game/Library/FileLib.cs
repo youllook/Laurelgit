@@ -7,6 +7,7 @@ namespace Laurel_game.Library
 {
     public class FileLib
     {
+        public static string recordPath = AppDomain.CurrentDomain.BaseDirectory + "Record/";
         public static string rootPath = AppDomain.CurrentDomain.BaseDirectory + "Files/";
         //檔案是否存在
         public static bool IsFileExist(string FilePath)

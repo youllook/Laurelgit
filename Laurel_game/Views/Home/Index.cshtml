@@ -75,9 +75,9 @@
         //login
         $scope.game_Type = "one"; //遊戲模式
         $scope.Login = function () {
-
+            
             if ($scope.User.userNo == '') { alert('請輸入員工代號!'); return; };
-            if ($scope.User.password == '' && $scope.User.userNo != 'guest') { alert('請輸入員工密碼!'); return; };
+            if ($scope.User.password == '' && $scope.User.userNo.indexOf('guest') == -1) { alert('請輸入員工密碼!'); return; };
             if ($scope.User.RoomId == '') { alert('請輸入分組代碼!'); return; };
             SingnalR_main.server.login($scope.User, $scope.game_Type).done(function (result) {
                 console.log('login result', result);
@@ -120,7 +120,7 @@
                     $scope.IsGameStart = true;
                 };
             };
-            console.log('$scope.PlayerData', $scope.PlayerData)
+            console.log('$scope.PlayerData', $scope.PlayerData);
             $scope.$apply();//refresh view
         };
 
@@ -178,6 +178,13 @@
                                 $scope.Timecount = $scope.room_data.Countdown;
                             }
 
+                            //打開送出按鈕
+                            $scope.role1_check = !$scope.PlayerData.Manufacturer.AI; //false;
+                            $scope.role2_check = !$scope.PlayerData.Distribution.AI;//false;
+                            $scope.role3_check = !$scope.PlayerData.Retailer.AI;//false;
+                            $scope.role4_check = !$scope.PlayerData.Wholesale.AI;//false;
+                            //AI setting at here
+                        
                             $scope.GameClientLoop();
                             resolve(true);
                         }
@@ -213,7 +220,12 @@
             }
             //console.log('week number', $scope.gameWeek);
             if ($scope.gameWeek == 47) {
-                alert('Game End!');
+                var path = $scope.room_data.key + '_' + $scope.room_data.RoomId;
+                alert('遊戲結束囉!系統計算成效分析中...');
+                setTimeout(() => {
+                    window.location.href = '@Url.Content("~/")Record/' + path;
+                    console.log('轉至紀錄');
+                }, 3000);
                 return false;
             };
 
@@ -259,10 +271,10 @@
             console.log('data client refresh!!', result);
             $scope.game_data = result;
             //打開送出按鈕
-            $scope.role1_check = false;
-            $scope.role2_check = false;
-            $scope.role3_check = false;
-            $scope.role4_check = false;
+            $scope.role1_check = !$scope.PlayerData.Manufacturer.AI; //false;
+            $scope.role2_check = !$scope.PlayerData.Distribution.AI;//false;
+            $scope.role3_check = !$scope.PlayerData.Retailer.AI;//false;
+            $scope.role4_check = !$scope.PlayerData.Wholesale.AI;//false;
             //refresh view
             $scope.$apply();
             //更新資料後繼續計時
@@ -273,6 +285,8 @@
         $scope.fine = 0;
         SingnalR_main.client.updateClienSettlement = function (result) {
             console.log('$scope.User:', $scope.User);
+            //var path = $scope.room_data.key + '_' + $scope.room_data.RoomId;
+            //console.log('path', path);
             console.log('updateClienSettlement result:', result);
             var thisData = result[$scope.User.role];
             if (thisData) {
@@ -289,12 +303,12 @@
 
         //時間顯示，背景
         $scope.WeekChange = false;
-        $scope.WeekName = "3月第一周"; //開始時間為3月第一周 結算時間為2月第四周 共計48周
+        $scope.WeekName = "1月第一周"; //開始時間為1月第一周 結算時間為12月第四周 共計48周
         $scope.Season = "spring";      //開始季節spring
 
         $scope.WeekNameSetting = function () {
 
-            var month = 3 + Math.floor($scope.gameWeek / 4);
+            var month = 1 + Math.floor($scope.gameWeek / 4);
             var week = $scope.gameWeek % 4;
 
             month = (month > 12) ? month = month - 12 : month;
@@ -379,6 +393,7 @@
                 }
             }
         }
+        //限制通路配送數量!!!!!!!!!!!!!!!!少了 Wholesale
         //限制通路配送數量
         $scope.Retailer_litmit = function (number) {
 
@@ -395,7 +410,6 @@
                 alert('預計配送數量不能超過總庫存量，請重新設定!');
             }
         }
-
         //限制通路配送數量
         $scope.Distribution_litmit = function (number) {
 
@@ -423,6 +437,67 @@
             };
         };
 
+        //AI設定
+        function AI_Fill()
+        {
+            // AI Manufacturer
+            if ($scope.PlayerData.Manufacturer.AI) {
+                let thisData = $scope.game_data['Manufacturer'];
+                let nextData = $scope.game_data['Distribution'];
+                const fill = fillToMax([
+                nextData.ProductItem.dumpling.Stock,
+                nextData.ProductItem.salad.Stock,
+                nextData.ProductItem.riceball.Stock
+                ], 400);
+                $scope.game_data['Manufacturer'].ProductItem.dumpling.Require = fill[0];
+                $scope.game_data['Manufacturer'].ProductItem.salad.Require = fill[1];
+                $scope.game_data['Manufacturer'].ProductItem.riceball.Require = fill[2];
+            }
+            // AI Distribution
+            if ($scope.PlayerData.Distribution.AI) {
+                let thisData = $scope.game_data['Distribution'];
+                let nextData = $scope.game_data['Wholesale'];
+                const fill = fillToMax([
+                nextData.ProductItem.dumpling.Stock,
+                nextData.ProductItem.salad.Stock,
+                nextData.ProductItem.riceball.Stock
+                ], 250);
+                $scope.game_data['Distribution'].ProductItem.dumpling.Shipping = fill[0];
+                $scope.game_data['Distribution'].ProductItem.salad.Shipping = fill[1];
+                $scope.game_data['Distribution'].ProductItem.riceball.Shipping = fill[2];
+            }
+            // AI Wholesale
+            if ($scope.PlayerData.Wholesale.AI) {
+                let thisData = $scope.game_data['Wholesale'];
+                let nextData = $scope.game_data['Retailer'];
+                const fill = fillToMax([
+                nextData.ProductItem.dumpling.Stock,
+                nextData.ProductItem.salad.Stock,
+                nextData.ProductItem.riceball.Stock
+                ], 180);
+                $scope.game_data['Wholesale'].ProductItem.dumpling.Shipping = fill[0];
+                $scope.game_data['Wholesale'].ProductItem.salad.Shipping = fill[1];
+                $scope.game_data['Wholesale'].ProductItem.riceball.Shipping = fill[2];
+            }
+            // AI Retailer
+            if ($scope.PlayerData.Retailer.AI) {
+
+            }
+        }
+
+        //數字陣列 加總至max值並返回差額 ex: var result =  fillToMax([6, 2, 3],50);
+        function fillToMax(int_array, max) {
+            let tempArray = int_array.slice(0);;
+            while (tempArray.reduce((a, b) => a + b, 0) < max) {
+                let _maxIndex = tempArray.reduce((iMax, x, i, arr) => x < arr[iMax] ? i : iMax, 0);
+                tempArray[_maxIndex] = tempArray[_maxIndex] + 1;
+            }
+            tempArray[0] = tempArray[0] - int_array[0];
+            tempArray[1] = tempArray[1] - int_array[1];
+            tempArray[2] = tempArray[2] - int_array[2];
+            return tempArray;
+        }
+        
     }
 </script>
 <div ng-app ng-controller="mainCtrl">

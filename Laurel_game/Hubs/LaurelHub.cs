@@ -60,6 +60,7 @@ namespace Laurel_game.Hubs
                         //data merge
                         user.ConnectID = Context.ConnectionId;
                         user.Name = usermodel.Name;
+                        user.userNo = usermodel.userNo;
                         UserList.Add(user);//加入玩家列表選單
                         Groups.Add(Context.ConnectionId, user.RoomID);//分組廣播
                         //DisplayRoles(user.RoomID);//推播角色資訊至選擇畫面
@@ -91,7 +92,7 @@ namespace Laurel_game.Hubs
                 {
                     var user_data = UserList.Where(p => p.userNo == user.userNo && p.password == user.password).FirstOrDefault();
                     //若已經有設定電腦則交換
-                    var changeCom = UserList.Where(p => p.Role == user.Role).FirstOrDefault();
+                    var changeCom = UserList.Where(p => p.Role == user.Role && p.RoomID == Room.RoomId).FirstOrDefault();
                     if (changeCom != null)
                     {
                         changeCom.Role = user_data.Role;
@@ -172,7 +173,7 @@ namespace Laurel_game.Hubs
             {
                 if (name != role)
                 {
-                    var user = UserList.Where(p => p.Role == name).FirstOrDefault();
+                    var user = UserList.Where(p => p.Role == name && p.RoomID == RoomID).FirstOrDefault();
                     if (user != null)
                     {
                         user.Role = name;
@@ -292,11 +293,12 @@ namespace Laurel_game.Hubs
                 //修改　Retailer　的資料
                 RetailerItemHandle(user.RoomID, WeekNum);
                 //更新所有人資料
-                //Clients.Group.addNewMessageToPage(JsonConvert.SerializeObject(UserList));
-                Clients.All.UpdateClienData(StorageItgem);
+                //Clients.All.UpdateClienData(StorageItgem);
+                Clients.Group(user.RoomID).UpdateClienData(StorageItgem);
                 //結算 累計盈餘與累計罰金
                 GameSettlement SettlementData = GetSettlement(user.RoomID);
-                Clients.All.UpdateClienSettlement(SettlementData);
+                //Clients.All.UpdateClienSettlement(SettlementData);
+                Clients.Group(user.RoomID).UpdateClienSettlement(SettlementData);
             }
 
             return true;
@@ -674,7 +676,7 @@ namespace Laurel_game.Hubs
                 string filename = roomData.key + "_" + roomData.RoomId;
                 var thisGameData = GameRecordList.Where(p => p.RoomId == Roomid).ToList();
                 string Content = Newtonsoft.Json.JsonConvert.SerializeObject(thisGameData);
-                string filepath = Library.FileLib.rootPath + "save/" + filename + ".txt";
+                string filepath = Library.FileLib.recordPath + filename + ".json";
                 Library.FileLib.WriteOverFile(filepath, Content);
             }
         }
