@@ -1,0 +1,87 @@
+﻿@model Laurel_game.Models.CostSettingModel
+
+<!--MVC用Ajax套件-->
+<script type="text/javascript" src="@Url.Content("~/Scripts/jquery.unobtrusive-ajax.min.js")"></script>
+
+@using (Ajax.BeginForm("CostSetting", "Home", new AjaxOptions { OnSuccess = "getresult" }, new { enctype = "multipart/form-data" }))
+{
+    <table class="formStyle">
+        <tr>
+            <td colspan="2"><input type="submit" value="Save" /></td>
+        </tr>
+    </table>
+
+    <table class="formStyle">
+        <tr><td colspan="2" class="name">Manufacturer(工廠) - 收入</td></tr>
+        <tr><td>餃類</td><td>@Html.TextBoxFor(p => p.Manufacturer.income.dumpling)</td></tr>
+        <tr><td>湯圓</td><td>@Html.TextBoxFor(p => p.Manufacturer.income.riceball)</td></tr>
+        <tr><td>沙拉</td><td>@Html.TextBoxFor(p => p.Manufacturer.income.salad)</td></tr>
+
+        <tr><td colspan="2" class="name">Manufacturer(工廠) - 成本</td></tr>
+        <tr><td>餃類</td><td>@Html.TextBoxFor(p => p.Manufacturer.cost.dumpling)</td></tr>
+        <tr><td>湯圓</td><td>@Html.TextBoxFor(p => p.Manufacturer.cost.riceball)</td></tr>
+        <tr><td>沙拉</td><td>@Html.TextBoxFor(p => p.Manufacturer.cost.salad)</td></tr>
+
+        <tr><td colspan="2" class="name">Manufacturer(工廠) - 罰金</td></tr>
+        <tr><td>餃類</td><td>@Html.TextBoxFor(p => p.Manufacturer.fine.dumpling)</td></tr>
+        <tr><td>湯圓</td><td>@Html.TextBoxFor(p => p.Manufacturer.fine.riceball)</td></tr>
+        <tr><td>沙拉</td><td>@Html.TextBoxFor(p => p.Manufacturer.fine.salad)</td></tr>
+    </table>
+
+    <table class="formStyle">
+        <tr><td colspan="2" class="name">Wholesale(營業所) - 收入</td></tr>
+        <tr><td>餃類</td><td>@Html.TextBoxFor(p => p.Wholesale.income.dumpling)</td></tr>
+        <tr><td>湯圓</td><td>@Html.TextBoxFor(p => p.Wholesale.income.riceball)</td></tr>
+        <tr><td>沙拉</td><td>@Html.TextBoxFor(p => p.Wholesale.income.salad)</td></tr>
+
+        <tr><td colspan="2" class="name">Wholesale(營業所) - 成本</td></tr>
+        <tr><td>餃類</td><td>@Html.TextBoxFor(p => p.Wholesale.cost.dumpling)</td></tr>
+        <tr><td>湯圓</td><td>@Html.TextBoxFor(p => p.Wholesale.cost.riceball)</td></tr>
+        <tr><td>沙拉</td><td>@Html.TextBoxFor(p => p.Wholesale.cost.salad)</td></tr>
+
+        <tr><td colspan="2" class="name">Wholesale(營業所) - 罰金</td></tr>
+        <tr><td>餃類</td><td>@Html.TextBoxFor(p => p.Wholesale.fine.dumpling)</td></tr>
+        <tr><td>湯圓</td><td>@Html.TextBoxFor(p => p.Wholesale.fine.riceball)</td></tr>
+        <tr><td>沙拉</td><td>@Html.TextBoxFor(p => p.Wholesale.fine.salad)</td></tr>
+    </table>
+
+    <table class="formStyle">
+        <tr><td colspan="2" class="name">Distribution(發貨中心) - 收入</td></tr>
+        <tr><td>餃類</td><td>@Html.TextBoxFor(p => p.Distribution.income.dumpling)</td></tr>
+        <tr><td>湯圓</td><td>@Html.TextBoxFor(p => p.Distribution.income.riceball)</td></tr>
+        <tr><td>沙拉</td><td>@Html.TextBoxFor(p => p.Distribution.income.salad)</td></tr>
+
+        <tr><td colspan="2" class="name">Distribution(發貨中心) - 成本</td></tr>
+        <tr><td>餃類</td><td>@Html.TextBoxFor(p => p.Distribution.cost.dumpling)</td></tr>
+        <tr><td>湯圓</td><td>@Html.TextBoxFor(p => p.Distribution.cost.riceball)</td></tr>
+        <tr><td>沙拉</td><td>@Html.TextBoxFor(p => p.Distribution.cost.salad)</td></tr>
+
+        <tr><td colspan="2" class="name">Distribution(發貨中心) - 罰金</td></tr>
+        <tr><td>餃類</td><td>@Html.TextBoxFor(p => p.Distribution.fine.dumpling)</td></tr>
+        <tr><td>湯圓</td><td>@Html.TextBoxFor(p => p.Distribution.fine.riceball)</td></tr>
+        <tr><td>沙拉</td><td>@Html.TextBoxFor(p => p.Distribution.fine.salad)</td></tr>
+    </table>
+
+    <table class="formStyle">
+        <tr><td colspan="2" class="name">Retailer(通路) - 收入</td></tr>
+        <tr><td>餃類</td><td>@Html.TextBoxFor(p => p.Retailer.income.dumpling)</td></tr>
+        <tr><td>湯圓</td><td>@Html.TextBoxFor(p => p.Retailer.income.riceball)</td></tr>
+        <tr><td>沙拉</td><td>@Html.TextBoxFor(p => p.Retailer.income.salad)</td></tr>
+
+        <tr><td colspan="2" class="name">Retailer(通路) - 成本</td></tr>
+        <tr><td>餃類</td><td>@Html.TextBoxFor(p => p.Retailer.cost.dumpling)</td></tr>
+        <tr><td>湯圓</td><td>@Html.TextBoxFor(p => p.Retailer.cost.riceball)</td></tr>
+        <tr><td>沙拉</td><td>@Html.TextBoxFor(p => p.Retailer.cost.salad)</td></tr>
+
+        <tr><td colspan="2" class="name">Retailer(通路) - 罰金</td></tr>
+        <tr><td>餃類</td><td>@Html.TextBoxFor(p => p.Retailer.fine.dumpling)</td></tr>
+        <tr><td>湯圓</td><td>@Html.TextBoxFor(p => p.Retailer.fine.riceball)</td></tr>
+        <tr><td>沙拉</td><td>@Html.TextBoxFor(p => p.Retailer.fine.salad)</td></tr>
+    </table>
+}
+<script>
+    function getresult(data) {
+        alert(data.msg);
+        console.log(data.msg);
+    }
+</script>
