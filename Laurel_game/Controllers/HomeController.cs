@@ -56,6 +56,30 @@ namespace Laurel_game.Controllers
             return View(result);
         }
 
+        public ActionResult CostSetting()
+        {
+            CostSettingModel model =  Library.SettingFile.GetCostSet();
+            return View(model);
+        }
+        [HttpPost]
+        public JsonResult CostSetting(CostSettingModel model)
+        {
+            var saveContent = JsonConvert.SerializeObject(model);
+            string settingPath = Library.FileLib.rootPath + "cost_setting.json";
+            Library.FileLib.WriteOverFile(settingPath,saveContent);
+            return Json(new
+            {
+                msg = "儲存成功"
+            }, JsonRequestBehavior.AllowGet);
+        }
+        public ActionResult Employee()
+        {
+            return View();
+        }
+        public ActionResult Solar_terms()
+        {
+            return View();
+        }
         public ActionResult Chat()
         {
            

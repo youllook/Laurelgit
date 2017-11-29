@@ -69,13 +69,14 @@ namespace Laurel_game.Hubs
                     }
                     else
                     {
+                        return "房間已滿人！";
                         //房間已滿人！
                     }
 
                 }
             }else
             {
-                //已經登入
+                return "帳號已被使用!";
             }
             return false;
         }

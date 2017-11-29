@@ -178,6 +178,7 @@
     </Compile>
     <Compile Include="Hubs\LaurelHub.cs" />
     <Compile Include="Library\FileLib.cs" />
+    <Compile Include="Library\SettingFile.cs" />
     <Compile Include="Models\GameRecordModel.cs" />
     <Compile Include="Models\CostSettingModel.cs" />
     <Compile Include="Models\Solar_termsModel.cs" />
@@ -236,6 +237,7 @@
     <None Include="Scripts\jquery.validate-vsdoc.js" />
     <Content Include="Scripts\jquery.signalR-2.2.2.js" />
     <Content Include="Scripts\jquery.signalR-2.2.2.min.js" />
+    <Content Include="Scripts\jquery.unobtrusive-ajax.min.js" />
     <Content Include="Scripts\jquery.validate.js" />
     <Content Include="Scripts\jquery.validate.min.js" />
     <Content Include="Scripts\jquery.validate.unobtrusive.js" />
@@ -258,13 +260,15 @@
     <Content Include="Views\Home\Index.cshtml" />
     <Content Include="Views\Home\Chat.cshtml" />
     <Content Include="Views\Home\Record.cshtml" />
-    <Content Include="Views\Home\Game.cshtml" />
+    <Content Include="Views\Home\CostSetting.cshtml" />
     <Content Include="Views\Home\ChatCount.cshtml" />
     <Content Include="Views\Home\ChatGroup.cshtml" />
     <Content Include="Views\Home\ShowAllUser.cshtml" />
     <Content Include="Views\Home\Timer.cshtml" />
     <Content Include="Views\Home\mobile_wii.cshtml" />
     <Content Include="Views\Home\mobile_wii_controller.cshtml" />
+    <Content Include="Views\Home\Employee.cshtml" />
+    <Content Include="Views\Home\Solar_terms.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

@@ -7,11 +7,11 @@
 
 <script src="@Url.Content("~/Record/demo.js")"></script>
 <script>
-	    var myChart; //ChartObj
-	   //原始資料
-	    var source = @Html.Raw(Model.GameData_Json);
-		//console.log(source);
-        var benifit = @Model.CostSet_Json;
+    var myChart; //ChartObj
+    //原始資料
+    var source = @Html.Raw(Model.GameData_Json);
+    //console.log(source);
+    var benifit = @Html.Raw(Model.CostSet_Json);
 		//各商家設定資料
 		var game_chart_data = {
 			Manufacturer_Data : {
@@ -77,171 +77,171 @@
 				 //w = week
 				 for(var w=0;w<3;w++){
 
-					 if(typeof productName !== 'undefined'){
+        if(typeof productName !== 'undefined'){
 
-						 tempData[rolelist[item] + '_income'] =
-						 (month_data[w][rolename][productName].income * benifit[rolename].income[productName]);
-						 tempData[rolelist[item] + '_cost'] =
-						 (month_data[w][rolename][productName].cost * benifit[rolename].cost[productName]);
-						 tempData[rolelist[item] + '_fine'] =
-						 ((month_data[w][rolename][productName].require + month_data[w][rolename][productName].overrun) * benifit[rolename].fine[productName]);
+            tempData[rolelist[item] + '_income'] =
+            (month_data[w][rolename][productName].income * benifit[rolename].income[productName]);
+            tempData[rolelist[item] + '_cost'] =
+            (month_data[w][rolename][productName].cost * benifit[rolename].cost[productName]);
+            tempData[rolelist[item] + '_fine'] =
+            ((month_data[w][rolename][productName].require + month_data[w][rolename][productName].overrun) * benifit[rolename].fine[productName]);
 
-					 }else{
+        }else{
 
-						 tempData[rolelist[item] + '_income'] =
-						 (month_data[w][rolename].dumpling.income * benifit[rolename].income.dumpling) +
-						 (month_data[w][rolename].riceball.income * benifit[rolename].income.riceball) +
-						 (month_data[w][rolename].salad.income * benifit[rolename].income.salad);
-						 tempData[rolelist[item] + '_cost'] =
-						 (month_data[w][rolename].dumpling.cost * benifit[rolename].cost.dumpling) +
-						 (month_data[w][rolename].riceball.cost * benifit[rolename].cost.riceball) +
-						 (month_data[w][rolename].salad.cost * benifit[rolename].cost.salad);
-						 tempData[rolelist[item] + '_fine'] =
-						 ((month_data[w][rolename].dumpling.require + month_data[w][rolename].dumpling.overrun) * benifit[rolename].fine.dumpling) +
-						 ((month_data[w][rolename].riceball.require + month_data[w][rolename].riceball.overrun) * benifit[rolename].fine.riceball) +
-						 ((month_data[w][rolename].salad.require + month_data[w][rolename].salad.overrun) * benifit[rolename].fine.salad);
+            tempData[rolelist[item] + '_income'] =
+            (month_data[w][rolename].dumpling.income * benifit[rolename].income.dumpling) +
+            (month_data[w][rolename].riceball.income * benifit[rolename].income.riceball) +
+            (month_data[w][rolename].salad.income * benifit[rolename].income.salad);
+            tempData[rolelist[item] + '_cost'] =
+            (month_data[w][rolename].dumpling.cost * benifit[rolename].cost.dumpling) +
+            (month_data[w][rolename].riceball.cost * benifit[rolename].cost.riceball) +
+            (month_data[w][rolename].salad.cost * benifit[rolename].cost.salad);
+            tempData[rolelist[item] + '_fine'] =
+            ((month_data[w][rolename].dumpling.require + month_data[w][rolename].dumpling.overrun) * benifit[rolename].fine.dumpling) +
+            ((month_data[w][rolename].riceball.require + month_data[w][rolename].riceball.overrun) * benifit[rolename].fine.riceball) +
+            ((month_data[w][rolename].salad.require + month_data[w][rolename].salad.overrun) * benifit[rolename].fine.salad);
 
-					 };
-				 };
-				//累加
-				 if(i != 1){
-					 game_chart_data[rolename + '_Data'].income.push(tempData[rolelist[item] + '_income'] + game_chart_data[rolename + '_Data'].income[(i-2)]);
-					 game_chart_data[rolename + '_Data'].cost.push(tempData[rolelist[item] + '_cost'] + game_chart_data[rolename + '_Data'].cost[(i-2)]);
-					 game_chart_data[rolename + '_Data'].fine.push(tempData[rolelist[item] + '_fine'] + game_chart_data[rolename + '_Data'].fine[(i-2)]);
+        };
+    };
+    //累加
+    if(i != 1){
+        game_chart_data[rolename + '_Data'].income.push(tempData[rolelist[item] + '_income'] + game_chart_data[rolename + '_Data'].income[(i-2)]);
+        game_chart_data[rolename + '_Data'].cost.push(tempData[rolelist[item] + '_cost'] + game_chart_data[rolename + '_Data'].cost[(i-2)]);
+        game_chart_data[rolename + '_Data'].fine.push(tempData[rolelist[item] + '_fine'] + game_chart_data[rolename + '_Data'].fine[(i-2)]);
 
-				 }else{
-					 game_chart_data[rolename + '_Data'].income.push(tempData[rolelist[item] + '_income']);
-					 game_chart_data[rolename + '_Data'].cost.push(tempData[rolelist[item] + '_cost']);
-					 game_chart_data[rolename + '_Data'].fine.push(tempData[rolelist[item] + '_fine']);
-				}
-				//不累加
-				// game_chart_data[rolename + '_Data'].income.push(tempData[rolelist[item] + '_income']);
-				// game_chart_data[rolename + '_Data'].cost.push(tempData[rolelist[item] + '_cost']);
-				// game_chart_data[rolename + '_Data'].fine.push(tempData[rolelist[item] + '_fine']);
+    }else{
+        game_chart_data[rolename + '_Data'].income.push(tempData[rolelist[item] + '_income']);
+        game_chart_data[rolename + '_Data'].cost.push(tempData[rolelist[item] + '_cost']);
+        game_chart_data[rolename + '_Data'].fine.push(tempData[rolelist[item] + '_fine']);
+    }
+    //不累加
+    // game_chart_data[rolename + '_Data'].income.push(tempData[rolelist[item] + '_income']);
+    // game_chart_data[rolename + '_Data'].cost.push(tempData[rolelist[item] + '_cost']);
+    // game_chart_data[rolename + '_Data'].fine.push(tempData[rolelist[item] + '_fine']);
 
-			 }
+    }
 
-			};
-			//refresh chart
-			if(typeof myChart !== 'undefined'){
-			  //var chartType = "profit_chart"; //ex:profit_chart,income_chart,cost_chart,fine_chart
-			  if(chartType == "profit_chart")
-			   profit_chart();
-			  else if(chartType == "income_chart")
-			   income_chart();
-			  else if(chartType == "cost_chart")
-			   cost_chart();
-			  else if(chartType == "fine_chart")
-			   fine_chart();
-			}
-		};
+    };
+    //refresh chart
+    if(typeof myChart !== 'undefined'){
+        //var chartType = "profit_chart"; //ex:profit_chart,income_chart,cost_chart,fine_chart
+        if(chartType == "profit_chart")
+            profit_chart();
+        else if(chartType == "income_chart")
+            income_chart();
+        else if(chartType == "cost_chart")
+            cost_chart();
+        else if(chartType == "fine_chart")
+            fine_chart();
+    }
+    };
 
-		var _init_data = {
-			  Manufacturer_all_income:[],
-			  Distribution_all_income:[],
-			  Retailer_all_income:[],
-			  Wholesale_all_income:[]
-		};
+    var _init_data = {
+        Manufacturer_all_income:[],
+        Distribution_all_income:[],
+        Retailer_all_income:[],
+        Wholesale_all_income:[]
+    };
 
-		function _data_set(){
-		  for(var item in rolelist){
-		    var _rolename = rolelist[item];
+    function _data_set(){
+        for(var item in rolelist){
+            var _rolename = rolelist[item];
 
-			for(var i=0;i<=11;i++){
-			 var _income = game_chart_data[_rolename + '_Data'].income[i]
-			  - game_chart_data[_rolename + '_Data'].cost[i]
-			  - game_chart_data[_rolename + '_Data'].fine[i]
-			  //console.log(_rolename + 'in month ' + i + ' has income:' + _income);
-			 _init_data[_rolename + '_all_income'].push(_income);
-			};
+            for(var i=0;i<=11;i++){
+                var _income = game_chart_data[_rolename + '_Data'].income[i]
+                 - game_chart_data[_rolename + '_Data'].cost[i]
+                 - game_chart_data[_rolename + '_Data'].fine[i]
+                //console.log(_rolename + 'in month ' + i + ' has income:' + _income);
+                _init_data[_rolename + '_all_income'].push(_income);
+            };
 
-		  };
-		}
-		//盈餘
-		function profit_chart(){
-		  chartType = "profit_chart";
-		  _data_set();
-		  var reset_option = {
-			series:[
+        };
+    }
+    //盈餘
+    function profit_chart(){
+        chartType = "profit_chart";
+        _data_set();
+        var reset_option = {
+            series:[
 			  {
-				data:_init_data.Manufacturer_all_income
+			      data:_init_data.Manufacturer_all_income
 			  },
 			  {
-				data:_init_data.Distribution_all_income
+			      data:_init_data.Distribution_all_income
 			  },
 			  {
-				data:_init_data.Wholesale_all_income
+			      data:_init_data.Wholesale_all_income
 			  },
 			  {
-				data:_init_data.Retailer_all_income
+			      data:_init_data.Retailer_all_income
 			  }
-			]
-		  }
-		  myChart.setOption(reset_option);
-		}
-		//收入
-		function income_chart(){
-		  chartType = "income_chart";
-		  var reset_option = {
-			series:[
+            ]
+        }
+        myChart.setOption(reset_option);
+    }
+    //收入
+    function income_chart(){
+        chartType = "income_chart";
+        var reset_option = {
+            series:[
 			  {
-				data:game_chart_data.Manufacturer_Data.income
+			      data:game_chart_data.Manufacturer_Data.income
 			  },
 			  {
-				data:game_chart_data.Distribution_Data.income
+			      data:game_chart_data.Distribution_Data.income
 			  },
 			  {
-				data:game_chart_data.Wholesale_Data.income
+			      data:game_chart_data.Wholesale_Data.income
 			  },
 			  {
-				data:game_chart_data.Retailer_Data.income
+			      data:game_chart_data.Retailer_Data.income
 			  }
-			]
-		  }
-		  myChart.setOption(reset_option);
-		}
-		//成本
-		function cost_chart(){
-		  chartType = "cost_chart";
-		  var reset_option = {
-			series:[
+            ]
+        }
+        myChart.setOption(reset_option);
+    }
+    //成本
+    function cost_chart(){
+        chartType = "cost_chart";
+        var reset_option = {
+            series:[
 			  {
-				data:game_chart_data.Manufacturer_Data.cost
+			      data:game_chart_data.Manufacturer_Data.cost
 			  },
 			  {
-				data:game_chart_data.Distribution_Data.cost
+			      data:game_chart_data.Distribution_Data.cost
 			  },
 			  {
-				data:game_chart_data.Wholesale_Data.cost
+			      data:game_chart_data.Wholesale_Data.cost
 			  },
 			  {
-				data:game_chart_data.Retailer_Data.cost
+			      data:game_chart_data.Retailer_Data.cost
 			  }
-			]
-		  }
-		  myChart.setOption(reset_option);
-		}
-		//罰款
-		function fine_chart(){
-		  chartType = "fine_chart";
-		  var reset_option = {
-			series:[
+            ]
+        }
+        myChart.setOption(reset_option);
+    }
+    //罰款
+    function fine_chart(){
+        chartType = "fine_chart";
+        var reset_option = {
+            series:[
 			  {
-				data:game_chart_data.Manufacturer_Data.fine
+			      data:game_chart_data.Manufacturer_Data.fine
 			  },
 			  {
-				data:game_chart_data.Distribution_Data.fine
+			      data:game_chart_data.Distribution_Data.fine
 			  },
 			  {
-				data:game_chart_data.Wholesale_Data.fine
+			      data:game_chart_data.Wholesale_Data.fine
 			  },
 			  {
-				data:game_chart_data.Retailer_Data.fine
+			      data:game_chart_data.Retailer_Data.fine
 			  }
-			]
-		  }
-		  myChart.setOption(reset_option);
-		}
+            ]
+        }
+        myChart.setOption(reset_option);
+    }
 </script>
 
 <style>
