@@ -461,19 +461,32 @@
             // AI Manufacturer
             if ($scope.PlayerData.Manufacturer.AI) {
                 let thisData = $scope.game_data['Manufacturer'];
+
+                let StockSum = thisData.ProductItem.dumpling.Stock +
+                               thisData.ProductItem.salad.Stock +
+                               thisData.ProductItem.riceball.Stock;
+                StockSum = (StockSum < 0) ? 0 : StockSum;
+
                 let nextData = $scope.game_data['Distribution'];
+
                 const fill = fillToMax([
                 nextData.ProductItem.dumpling.Stock,
                 nextData.ProductItem.salad.Stock,
                 nextData.ProductItem.riceball.Stock
-                ], 400);
+                ], 400 - StockSum);
+
                 $scope.game_data['Manufacturer'].ProductItem.dumpling.Distribute = fill[0];
                 $scope.game_data['Manufacturer'].ProductItem.salad.Distribute = fill[1];
                 $scope.game_data['Manufacturer'].ProductItem.riceball.Distribute = fill[2];
+
+                $scope.game_data['Distribution'].ProductItem.dumpling.Distribute = fill[0];
+                $scope.game_data['Distribution'].ProductItem.salad.Distribute = fill[1];
+                $scope.game_data['Distribution'].ProductItem.riceball.Distribute = fill[2];
             }
             // AI Distribution
             if ($scope.PlayerData.Distribution.AI) {
                 let thisData = $scope.game_data['Distribution'];
+
                 let nextData = $scope.game_data['Wholesale'];
                 const fill = fillToMax([
                 nextData.ProductItem.dumpling.Stock,
@@ -483,19 +496,27 @@
                 $scope.game_data['Distribution'].ProductItem.dumpling.Shipping = fill[0];
                 $scope.game_data['Distribution'].ProductItem.salad.Shipping = fill[1];
                 $scope.game_data['Distribution'].ProductItem.riceball.Shipping = fill[2];
+
+                $scope.game_data['Wholesale'].ProductItem.dumpling.Distribute = fill[0];
+                $scope.game_data['Wholesale'].ProductItem.salad.Distribute = fill[1];
+                $scope.game_data['Wholesale'].ProductItem.riceball.Distribute = fill[2];
             }
             // AI Wholesale
             if ($scope.PlayerData.Wholesale.AI) {
                 let thisData = $scope.game_data['Wholesale'];
+                let StockSum = thisData.ProductItem.dumpling.Stock +
+                               thisData.ProductItem.salad.Stock +
+                               thisData.ProductItem.riceball.Stock;
+
                 let nextData = $scope.game_data['Retailer'];
                 const fill = fillToMax([
                 nextData.ProductItem.dumpling.Stock,
                 nextData.ProductItem.salad.Stock,
                 nextData.ProductItem.riceball.Stock
                 ], 180);
-                $scope.game_data['Wholesale'].ProductItem.dumpling.Shipping = fill[0];
-                $scope.game_data['Wholesale'].ProductItem.salad.Shipping = fill[1];
-                $scope.game_data['Wholesale'].ProductItem.riceball.Shipping = fill[2];
+                $scope.game_data['Wholesale'].ProductItem.dumpling.Shipping = fill[0] + getRandomInt(10,30);
+                $scope.game_data['Wholesale'].ProductItem.salad.Shipping = fill[1] + getRandomInt(10, 30);
+                $scope.game_data['Wholesale'].ProductItem.riceball.Shipping = fill[2] + getRandomInt(10, 30);
             }
             // AI Retailer
             if ($scope.PlayerData.Retailer.AI) {
@@ -504,7 +525,7 @@
                 thisData.ProductItem.dumpling.Stock,
                 thisData.ProductItem.salad.Stock,
                 thisData.ProductItem.riceball.Stock
-                ], 180);
+                ], 180 );
                 $scope.game_data['Retailer'].ProductItem.dumpling.Require = fill[0];
                 $scope.game_data['Retailer'].ProductItem.salad.Require = fill[1];
                 $scope.game_data['Retailer'].ProductItem.riceball.Require = fill[2];
@@ -513,7 +534,13 @@
 
         //數字陣列 加總至max值並返回差額 ex: var result =  fillToMax([6, 2, 3],50);
         function fillToMax(int_array, max) {
-            let tempArray = int_array.slice(0);;
+
+            int_array[0] = (int_array[0] < 0) ? 0 : int_array[0];
+            int_array[1] = (int_array[1] < 0) ? 0 : int_array[1];
+            int_array[2] = (int_array[2] < 0) ? 0 : int_array[2];
+
+            let tempArray = int_array.slice(0);
+
             while (tempArray.reduce((a, b) => a + b, 0) < max) {
                 let _maxIndex = tempArray.reduce((iMax, x, i, arr) => x < arr[iMax] ? i : iMax, 0);
                 tempArray[_maxIndex] = tempArray[_maxIndex] + 1;
@@ -522,6 +549,9 @@
             tempArray[1] = tempArray[1] - int_array[1];
             tempArray[2] = tempArray[2] - int_array[2];
             return tempArray;
+        }
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
         }
         
     }
