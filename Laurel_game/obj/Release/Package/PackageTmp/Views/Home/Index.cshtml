@@ -12,7 +12,7 @@
     app.filter('roleFilter', function () {
        
         return function (value, nowrole, showrole) {
-            return value;
+           // return value;
            // console.log('myFormat value,nowrole,showrole', value,nowrole,showrole);
             if (typeof nowrole != 'undefined') {
 
@@ -43,6 +43,32 @@
             userNo: 'guest',
             password: '',
             RoomId: '@RandomNumber'
+        };
+
+        $scope.InputType = function (showrole) {
+            
+            const nowrole = $scope.User.role;
+            if (typeof nowrole != 'undefined' && typeof showrole != 'undefined') {
+
+                if (nowrole == showrole)
+                    return 'number';
+                if (nowrole == 'Retailer')
+                    return 'password';
+                if (nowrole == 'Manufacturer' && showrole != 'Distribution') {
+                    return 'password';
+                }
+                if (nowrole == 'Distribution' && showrole != 'Wholesale') {
+                    return 'password';
+                }
+                if (nowrole == 'Wholesale' && showrole != 'Retailer') {
+                    return 'password';
+                }
+                return 'number';
+            } else {
+                return 'number';
+            }
+            
+
         };
 
         var SingnalR_main = $.connection.laurelHub;
@@ -707,19 +733,19 @@
                         <div>餃類</div>
                         <div class="count">{{game_data['Manufacturer'].ProductItem['dumpling'].Require| roleFilter:User.role:'Manufacturer'}}</div>
                         <div class="count">{{game_data['Manufacturer'].ProductItem['dumpling'].Stock| roleFilter:User.role:'Manufacturer'}}</div>
-                        <div><input type="number" min="0" ng-disabled="role1_check" ng-change="number_litmit()" ng-model="game_data.Manufacturer.ProductItem.dumpling.Distribute" /></div>
+                        <div><input type="{{InputType('Manufacturer')}}" min="0" ng-disabled="role1_check" ng-change="number_litmit()" ng-model="game_data.Manufacturer.ProductItem.dumpling.Distribute" /></div>
                     </div>
                     <div class="flexitem flex4">
                         <div>湯圓</div>
                         <div class="count">{{game_data['Manufacturer'].ProductItem['riceball'].Require | roleFilter:User.role:'Manufacturer'}}</div>
                         <div class="count">{{game_data['Manufacturer'].ProductItem['riceball'].Stock | roleFilter:User.role:'Manufacturer'}}</div>
-                        <div><input type="number" ng-disabled="role1_check" min="0" ng-change="number_litmit()" ng-model="game_data.Manufacturer.ProductItem.riceball.Distribute" /></div>
+                        <div><input type="{{InputType('Manufacturer')}}" ng-disabled="role1_check" min="0" ng-change="number_litmit()" ng-model="game_data.Manufacturer.ProductItem.riceball.Distribute" /></div>
                     </div>
                     <div class="flexitem flex4">
                         <div>沙拉</div>
                         <div class="count">{{game_data['Manufacturer'].ProductItem['salad'].Require | roleFilter:User.role:'Manufacturer'}}</div>
                         <div class="count">{{game_data['Manufacturer'].ProductItem['salad'].Stock | roleFilter:User.role:'Manufacturer'}}</div>
-                        <div><input type="number" min="0" ng-disabled="role1_check" ng-change="number_litmit()" ng-model="game_data.Manufacturer.ProductItem.salad.Distribute" /></div>
+                        <div><input type="{{InputType('Manufacturer')}}" min="0" ng-disabled="role1_check" ng-change="number_litmit()" ng-model="game_data.Manufacturer.ProductItem.salad.Distribute" /></div>
                     </div>
                     <div class="flexitem flex3">
                         @*<div>總產能：<span class="count">{{(game_data['Manufacturer'].ProductItem['dumpling'].Stock + game_data['Manufacturer'].ProductItem['riceball'].Stock + game_data['Manufacturer'].ProductItem['salad'].Stock) + (game_data.Manufacturer.ProductItem.dumpling.Distribute + game_data.Manufacturer.ProductItem.riceball.Distribute + game_data.Manufacturer.ProductItem.salad.Distribute)}}</span></div>*@
@@ -744,22 +770,22 @@
                         <div>餃類</div>
                         <div class="count">{{game_data['Distribution'].ProductItem['dumpling'].Require | roleFilter:User.role:'Distribution'}}</div>
                         <div class="count" ng-class="(game_data.Distribution.ProductItem.dumpling.Stock < 0)?'red':''">{{game_data['Distribution'].ProductItem['dumpling'].Stock | roleFilter:User.role:'Distribution'}}</div>
-                        <div><input type="number" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()" ng-model="game_data.Distribution.ProductItem.dumpling.Distribute"/></div>
-                        <div><input type="number" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()" ng-model="game_data.Distribution.ProductItem.dumpling.Shipping" /></div>
+                        <div><input type="{{InputType('Distribution')}}" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()" ng-model="game_data.Distribution.ProductItem.dumpling.Distribute"/></div>
+                        <div><input type="{{InputType('Distribution')}}" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()" ng-model="game_data.Distribution.ProductItem.dumpling.Shipping" /></div>
                     </div>
                     <div class="flexitem flex4">
                         <div>湯圓</div>
                         <div class="count">{{game_data['Distribution'].ProductItem['riceball'].Require | roleFilter:User.role:'Distribution'}}</div>
                         <div class="count" ng-class="(game_data.Distribution.ProductItem.riceball.Stock < 0)?'red':''">{{game_data['Distribution'].ProductItem['riceball'].Stock | roleFilter:User.role:'Distribution'}}</div>
-                        <div><input type="number" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()" ng-model="game_data.Distribution.ProductItem.riceball.Distribute" /></div>
-                        <div><input type="number" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()" ng-model="game_data.Distribution.ProductItem.riceball.Shipping" /></div>
+                        <div><input type="{{InputType('Distribution')}}" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()" ng-model="game_data.Distribution.ProductItem.riceball.Distribute" /></div>
+                        <div><input type="{{InputType('Distribution')}}" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()" ng-model="game_data.Distribution.ProductItem.riceball.Shipping" /></div>
                     </div>
                     <div class="flexitem flex4">
                         <div>沙拉</div>
                         <div class="count">{{game_data['Distribution'].ProductItem['salad'].Require | roleFilter:User.role:'Distribution'}}</div>
                         <div class="count" ng-class="(game_data.Distribution.ProductItem.salad.Stock < 0)?'red':''">{{game_data['Distribution'].ProductItem['salad'].Stock | roleFilter:User.role:'Distribution'}}</div>
-                        <div><input type="number" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()" ng-model="game_data.Distribution.ProductItem.salad.Distribute" /></div>
-                        <div><input type="number" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()" ng-model="game_data.Distribution.ProductItem.salad.Shipping"/></div>
+                        <div><input type="{{InputType('Distribution')}}" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()" ng-model="game_data.Distribution.ProductItem.salad.Distribute" /></div>
+                        <div><input type="{{InputType('Distribution')}}" min="0" ng-disabled="role2_check" ng-change="Distribution_litmit()" ng-model="game_data.Distribution.ProductItem.salad.Shipping"/></div>
                     </div>
                     <div class="flexitem flex3">
                         <div>總庫存：<span class="count">{{'400' | roleFilter:User.role:'Distribution'}}</span></div>
@@ -782,19 +808,19 @@
                         <div>餃類</div>
                         <div class="count">{{game_data['Retailer'].ProductItem['dumpling'].Require | roleFilter:User.role:'Retailer'}}</div>
                         <div class="count" ng-class="(game_data.Retailer.ProductItem.dumpling.Stock < 0)?'red':''">{{game_data['Retailer'].ProductItem['dumpling'].Stock | roleFilter:User.role:'Retailer'}}</div>
-                        <div><input type="number" min="0" ng-disabled="role3_check" ng-change="Retailer_litmit()"  ng-model="game_data.Retailer.ProductItem.dumpling.Distribute" /></div>
+                        <div><input type="{{InputType('Retailer')}}" min="0" ng-disabled="role3_check" ng-change="Retailer_litmit()"  ng-model="game_data.Retailer.ProductItem.dumpling.Distribute" /></div>
                     </div>
                     <div class="flexitem flex4">
                         <div>湯圓</div>
                         <div class="count">{{game_data['Retailer'].ProductItem['riceball'].Require | roleFilter:User.role:'Retailer'}}</div>
                         <div class="count" ng-class="(game_data.Retailer.ProductItem.riceball.Stock < 0)?'red':''">{{game_data['Retailer'].ProductItem['riceball'].Stock | roleFilter:User.role:'Retailer'}}</div>
-                        <div><input type="number" min="0" ng-disabled="role3_check" ng-change="Retailer_litmit()"  ng-model="game_data.Retailer.ProductItem.riceball.Distribute" /></div>
+                        <div><input type="{{InputType('Retailer')}}" min="0" ng-disabled="role3_check" ng-change="Retailer_litmit()"  ng-model="game_data.Retailer.ProductItem.riceball.Distribute" /></div>
                     </div>
                     <div class="flexitem flex4">
                         <div>沙拉</div>
                         <div class="count">{{game_data['Retailer'].ProductItem['salad'].Require | roleFilter:User.role:'Retailer'}}</div>
                         <div class="count" ng-class="(game_data.Retailer.ProductItem.salad.Stock < 0)?'red':''">{{game_data['Retailer'].ProductItem['salad'].Stock | roleFilter:User.role:'Retailer'}}</div>
-                        <div><input type="number" min="0" ng-disabled="role3_check" ng-change="Retailer_litmit()"  ng-model="game_data.Retailer.ProductItem.salad.Distribute" /></div>
+                        <div><input type="{{InputType('Retailer')}}" min="0" ng-disabled="role3_check" ng-change="Retailer_litmit()"  ng-model="game_data.Retailer.ProductItem.salad.Distribute" /></div>
                     </div>
                     <div class="flexitem flex3">
                         <div>總庫存：<span class="count">{{'180'| roleFilter:User.role:'Retailer'}}</span></div>
@@ -818,22 +844,22 @@
                         <div>餃類</div>
                         <div class="count">{{game_data['Wholesale'].ProductItem['dumpling'].Require | roleFilter:User.role:'Wholesale'}}</div>
                         <div class="count" ng-class="(game_data.Wholesale.ProductItem.dumpling.Stock < 0)?'red':''">{{game_data['Wholesale'].ProductItem['dumpling'].Stock | roleFilter:User.role:'Wholesale'}}</div>
-                        <div><input type="number" min="0" ng-disabled="role4_check" ng-change="Wholesale_litmit()" ng-model="game_data.Wholesale.ProductItem.dumpling.Distribute" /></div>
-                        <div><input type="number" min="0" ng-disabled="role4_check" ng-change="Wholesale_litmit()" ng-model="game_data.Wholesale.ProductItem.dumpling.Shipping" /></div>
+                        <div><input type="{{InputType('Wholesale')}}" min="0" ng-disabled="role4_check" ng-change="Wholesale_litmit()" ng-model="game_data.Wholesale.ProductItem.dumpling.Distribute" /></div>
+                        <div><input type="{{InputType('Wholesale')}}" min="0" ng-disabled="role4_check" ng-change="Wholesale_litmit()" ng-model="game_data.Wholesale.ProductItem.dumpling.Shipping" /></div>
                     </div>
                     <div class="flexitem flex4">
                         <div>湯圓</div>
                         <div class="count">{{game_data['Wholesale'].ProductItem['riceball'].Require | roleFilter:User.role:'Wholesale'}}</div>
                         <div class="count" ng-class="(game_data.Wholesale.ProductItem.riceball.Stock < 0)?'red':''">{{game_data['Wholesale'].ProductItem['riceball'].Stock | roleFilter:User.role:'Wholesale'}}</div>
-                        <div><input type="number" min="0" ng-disabled="role4_check" ng-change="Wholesale_litmit()" ng-model="game_data.Wholesale.ProductItem.riceball.Distribute" /></div>
-                        <div><input type="number" min="0" ng-disabled="role4_check" ng-change="Wholesale_litmit()" ng-model="game_data.Wholesale.ProductItem.riceball.Shipping" /></div>
+                        <div><input type="{{InputType('Wholesale')}}" min="0" ng-disabled="role4_check" ng-change="Wholesale_litmit()" ng-model="game_data.Wholesale.ProductItem.riceball.Distribute" /></div>
+                        <div><input type="{{InputType('Wholesale')}}" min="0" ng-disabled="role4_check" ng-change="Wholesale_litmit()" ng-model="game_data.Wholesale.ProductItem.riceball.Shipping" /></div>
                     </div>
                     <div class="flexitem flex4">
                         <div>沙拉</div>
                         <div class="count">{{game_data['Wholesale'].ProductItem['salad'].Require | roleFilter:User.role:'Wholesale'}}</div>
                         <div class="count" ng-class="(game_data.Wholesale.ProductItem.salad.Stock < 0)?'red':''">{{game_data['Wholesale'].ProductItem['salad'].Stock | roleFilter:User.role:'Wholesale'}}</div>
-                        <div><input type="number" min="0" ng-disabled="role4_check" ng-change="Wholesale_litmit()" ng-model="game_data.Wholesale.ProductItem.salad.Distribute" /></div>
-                        <div><input type="number" min="0" ng-disabled="role4_check" ng-change="Wholesale_litmit()" ng-model="game_data.Wholesale.ProductItem.salad.Shipping" /></div>
+                        <div><input type="{{InputType('Wholesale')}}" min="0" ng-disabled="role4_check" ng-change="Wholesale_litmit()" ng-model="game_data.Wholesale.ProductItem.salad.Distribute" /></div>
+                        <div><input type="{{InputType('Wholesale')}}" min="0" ng-disabled="role4_check" ng-change="Wholesale_litmit()" ng-model="game_data.Wholesale.ProductItem.salad.Shipping" /></div>
                     </div>
                     <div class="flexitem flex3">
                         <div>總庫存：<span class="count">{{'250' | roleFilter:User.role:'Wholesale'}}</span></div>
