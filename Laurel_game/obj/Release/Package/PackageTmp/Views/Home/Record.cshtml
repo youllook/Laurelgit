@@ -253,17 +253,6 @@
     button.active, button.onType {
         border: 1px solid red;
     }
-    table {
-    padding:2px;
-    width:100%;
-    border-collapse: collapse;
-    }
-
-    table, th, td {
-        background-color:rgba(214, 246, 116, 0.2);
-        padding:2px;
-        border: 1px solid #AEACAE;
-    }
 </style>
 
 <div class="main_area_2 step4" ng-show="getStep('step4')">
@@ -283,14 +272,7 @@
             <button onclick="cost_chart()" class="cost_chart">成本</button>
             <button onclick="fine_chart()" class="fine_chart">罰款</button>
             <div id="main" style="height:400px"></div>
-
-            <div>
-                <button style="padding:5px;margin:10px 0;" onclick="showSource()">檢視原始資料</button>
-                <div id="jsonTotable"></div>
-            </div>
-
         </div>
-
     </div>
     <div class="copyright">版權所有 © 2017 LAUREL CORP. All Rights Reserved.</div>
 </div>
@@ -394,98 +376,4 @@
 					myChart.setOption(option);
 				}
 			);
-
-
-
-        // show source
-		function JsonToTable(_source){
-
-			    let html = '';
-			    if (_source instanceof Array){
-			        return ArrayToTable(_source);
-			    }else{
-			        return ObjectToTable(_source);
-			    }
-  
-			    function ArrayToTable(_array){
-			        const first_item = _array[0];
-			        const column = Object.keys(first_item);
-			        //標題列
-			        let first_row = '<tr>';
-			        column.forEach((element)=>{
-			            first_row += '<td>' + element + '</td>';
-			        });
-			        first_row += '</tr>';
-
-			        let row_items = '';
-			        _array.forEach((row)=>{
-			            row_items += '<tr>';
-			            column.forEach((_column)=>{
-			                if (typeof row[_column] === 'object'){
-			                    row_items += '<td>';
-			                    row_items += JsonToTable(row[_column]);
-			                    row_items += '</td>';
-			                }else {
-			                    row_items += '<td>';
-			                    row_items += row[_column];
-			                    row_items += '</td>';
-			                }
-			            });  
-			            row_items += '</tr>';
-			        });  
-	  
-	  
-			        const main_html = '<table>' + 
-                                      first_row + 
-                                      row_items +
-                                      '</table>';
-			        return main_html;
-			    }
-  
-			    function ObjectToTable(_obj){
-			        const column = Object.keys(_obj);
-			        // 每個key畫table
-			        let table = '<table>';
-			        column.forEach((element)=>{
-			            table += '<tr>';
-			            table += '<td>';
-			            table += element;
-			            table += '</td>';
-			            table += '<td>';
-			  
-			            if(typeof _obj[element] !== 'object'){
-			                table += _obj[element]; 
-			            } else{
-			                table += JsonToTable(_obj[element]);
-			            }
-			            table += '</td>';	
-			            table += '</tr>';
-		 
-			        });
-			        table += '</table>';
-			        return table;
-			    }
-		};
-		function showSource(){
-		    //原始資料
-            @{ 
-                string fileSource = Model.GameData_Json;
-                fileSource = fileSource.Replace("month", "月份");
-                fileSource = fileSource.Replace("week", "週數");
-                fileSource = fileSource.Replace("dumpling", "餃類");
-                fileSource = fileSource.Replace("riceball", "湯圓");
-                fileSource = fileSource.Replace("salad", "沙拉");
-                fileSource = fileSource.Replace("Manufacturer", "工廠");
-                fileSource = fileSource.Replace("Distribution", "發貨中心");
-                fileSource = fileSource.Replace("Wholesale", "營業所");
-                fileSource = fileSource.Replace("Retailer", "零售通路");
-                fileSource = fileSource.Replace("require", "需求數量");
-                fileSource = fileSource.Replace("income", "出貨數量");
-                fileSource = fileSource.Replace("cost", "成本數量");
-                fileSource = fileSource.Replace("overrun", "庫存超出");
-                fileSource = fileSource.Replace("lack", "缺貨數量");
-            }
-		    var fileSource = @Html.Raw(fileSource);
-		    $('#jsonTotable').html(JsonToTable(fileSource));		
-		}
     </script>

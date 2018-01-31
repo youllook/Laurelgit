@@ -22,7 +22,7 @@ namespace Laurel_game.Models
             this.RoomId = "";
             this.Mode = "";
             this.Week = 0;
-            this.Countdown = 15;
+            this.Countdown = 3;
             this.StartTime = DateTime.Now;
             this.EndTime = DateTime.Now;
         }

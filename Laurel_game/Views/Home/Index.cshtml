@@ -458,56 +458,138 @@
         //AI設定
         function AI_Fill()
         {
+            var _pNames = ['dumpling', 'salad', 'riceball'];
             // AI Manufacturer
             if ($scope.PlayerData.Manufacturer.AI) {
                 let thisData = $scope.game_data['Manufacturer'];
-                let nextData = $scope.game_data['Distribution'];
-                const fill = fillToMax([
-                nextData.ProductItem.dumpling.Stock,
-                nextData.ProductItem.salad.Stock,
-                nextData.ProductItem.riceball.Stock
-                ], 400);
-                $scope.game_data['Manufacturer'].ProductItem.dumpling.Distribute = fill[0];
-                $scope.game_data['Manufacturer'].ProductItem.salad.Distribute = fill[1];
-                $scope.game_data['Manufacturer'].ProductItem.riceball.Distribute = fill[2];
-            }
-            // AI Distribution
-            if ($scope.PlayerData.Distribution.AI) {
-                let thisData = $scope.game_data['Distribution'];
-                let nextData = $scope.game_data['Wholesale'];
-                const fill = fillToMax([
-                nextData.ProductItem.dumpling.Stock,
-                nextData.ProductItem.salad.Stock,
-                nextData.ProductItem.riceball.Stock
-                ], 250);
-                $scope.game_data['Distribution'].ProductItem.dumpling.Shipping = fill[0];
-                $scope.game_data['Distribution'].ProductItem.salad.Shipping = fill[1];
-                $scope.game_data['Distribution'].ProductItem.riceball.Shipping = fill[2];
-            }
-            // AI Wholesale
-            if ($scope.PlayerData.Wholesale.AI) {
-                let thisData = $scope.game_data['Wholesale'];
-                let nextData = $scope.game_data['Retailer'];
-                const fill = fillToMax([
-                nextData.ProductItem.dumpling.Stock,
-                nextData.ProductItem.salad.Stock,
-                nextData.ProductItem.riceball.Stock
-                ], 180);
-                $scope.game_data['Wholesale'].ProductItem.dumpling.Shipping = fill[0];
-                $scope.game_data['Wholesale'].ProductItem.salad.Shipping = fill[1];
-                $scope.game_data['Wholesale'].ProductItem.riceball.Shipping = fill[2];
-            }
-            // AI Retailer
-            if ($scope.PlayerData.Retailer.AI) {
-                let thisData = $scope.game_data['Retailer'];
+                //let nextData = $scope.game_data['Distribution'];
                 const fill = fillToMax([
                 thisData.ProductItem.dumpling.Stock,
                 thisData.ProductItem.salad.Stock,
                 thisData.ProductItem.riceball.Stock
-                ], 180);
-                $scope.game_data['Retailer'].ProductItem.dumpling.Require = fill[0];
-                $scope.game_data['Retailer'].ProductItem.salad.Require = fill[1];
-                $scope.game_data['Retailer'].ProductItem.riceball.Require = fill[2];
+                ], 400);
+                //算出可以產多少貨物
+                $scope.game_data['Manufacturer'].ProductItem.dumpling.Distribute = fill[0];
+                $scope.game_data['Manufacturer'].ProductItem.salad.Distribute = fill[1];
+                $scope.game_data['Manufacturer'].ProductItem.riceball.Distribute = fill[2];
+                //比對需求
+                _pNames.forEach(function (_pname) {
+                    $scope.game_data['Manufacturer'].ProductItem[_pname].Distribute =
+                     (
+                      $scope.game_data['Manufacturer'].ProductItem[_pname].Require >
+                      $scope.game_data['Manufacturer'].ProductItem[_pname].Distribute
+                     ) ? $scope.game_data['Manufacturer'].ProductItem[_pname].Distribute : $scope.game_data['Manufacturer'].ProductItem[_pname].Require;
+                });
+
+
+            }
+            // AI Distribution
+            if ($scope.PlayerData.Distribution.AI) {
+                _pNames.forEach(function (_pname) {
+                    $scope.game_data['Distribution'].ProductItem[_pname].Shipping =
+                        ($scope.game_data['Distribution'].ProductItem[_pname].Stock < 0) ?
+                        0 :
+                        (
+                        ($scope.game_data['Distribution'].ProductItem[_pname].Stock -
+                         $scope.game_data['Distribution'].ProductItem[_pname].Require) > 0
+                        ) ?
+                        $scope.game_data['Distribution'].ProductItem[_pname].Require
+                         :
+                        $scope.game_data['Distribution'].ProductItem[_pname].Stock;
+                });
+                _pNames.forEach(function (_pname) {
+                    $scope.game_data['Distribution'].ProductItem[_pname].Distribute =
+                        (
+                        ($scope.game_data['Distribution'].ProductItem[_pname].Require -
+                         $scope.game_data['Distribution'].ProductItem[_pname].Stock -
+                         $scope.game_data['Distribution'].ProductItem[_pname].Shipping
+                         ) > 0
+                        ) ?
+                         ($scope.game_data['Distribution'].ProductItem[_pname].Require -
+                         $scope.game_data['Distribution'].ProductItem[_pname].Stock -
+                         $scope.game_data['Distribution'].ProductItem[_pname].Shipping
+                         )
+                         :
+                         $scope.game_data['Distribution'].ProductItem[_pname].Require;
+                });
+                //let thisData = $scope.game_data['Distribution'];
+                //let nextData = $scope.game_data['Wholesale'];
+                //const fill = fillToMax([
+                //nextData.ProductItem.dumpling.Stock,
+                //nextData.ProductItem.salad.Stock,
+                //nextData.ProductItem.riceball.Stock
+                //], 250);
+                //$scope.game_data['Distribution'].ProductItem.dumpling.Shipping = fill[0];
+                //$scope.game_data['Distribution'].ProductItem.salad.Shipping = fill[1];
+                //$scope.game_data['Distribution'].ProductItem.riceball.Shipping = fill[2];
+            }
+            // AI Wholesale
+            if ($scope.PlayerData.Wholesale.AI) {
+               
+                _pNames.forEach(function (_pname) {
+                    $scope.game_data['Wholesale'].ProductItem[_pname].Shipping =
+                        ($scope.game_data['Wholesale'].ProductItem[_pname].Stock < 0) ?
+                        0 :
+                        (
+                        ($scope.game_data['Wholesale'].ProductItem[_pname].Stock -
+                         $scope.game_data['Wholesale'].ProductItem[_pname].Require) > 0
+                        ) ?
+                        $scope.game_data['Wholesale'].ProductItem[_pname].Require
+                         :
+                        $scope.game_data['Wholesale'].ProductItem[_pname].Stock;
+                });
+                _pNames.forEach(function (_pname) {
+                    $scope.game_data['Wholesale'].ProductItem[_pname].Distribute =
+                        (
+                        ($scope.game_data['Wholesale'].ProductItem[_pname].Require -
+                         $scope.game_data['Wholesale'].ProductItem[_pname].Stock -
+                         $scope.game_data['Wholesale'].ProductItem[_pname].Shipping
+                         ) > 0
+                        ) ?
+                         ($scope.game_data['Wholesale'].ProductItem[_pname].Require -
+                         $scope.game_data['Wholesale'].ProductItem[_pname].Stock -
+                         $scope.game_data['Wholesale'].ProductItem[_pname].Shipping
+                         )
+                         :
+                         $scope.game_data['Wholesale'].ProductItem[_pname].Require;
+                });
+                //let thisData = $scope.game_data['Wholesale'];
+                //let nextData = $scope.game_data['Retailer'];
+                //const fill = fillToMax([
+                //nextData.ProductItem.dumpling.Stock,
+                //nextData.ProductItem.salad.Stock,
+                //nextData.ProductItem.riceball.Stock
+                //], 180);
+                //$scope.game_data['Wholesale'].ProductItem.dumpling.Shipping = fill[0];
+                //$scope.game_data['Wholesale'].ProductItem.salad.Shipping = fill[1];
+                //$scope.game_data['Wholesale'].ProductItem.riceball.Shipping = fill[2];
+            }
+            // AI Retailer
+            if ($scope.PlayerData.Retailer.AI) {
+                //配送額為 需求 - 庫存 大於0 配送不足的 小於零 需求 + 庫存 
+                _pNames.forEach(function (_pname) {
+                    $scope.game_data['Retailer'].ProductItem[_pname].Distribute =
+                        (
+                        ($scope.game_data['Retailer'].ProductItem[_pname].Require -
+                         $scope.game_data['Retailer'].ProductItem[_pname].Stock) > 0
+                        ) ?
+                        ($scope.game_data['Retailer'].ProductItem[_pname].Require -
+                         $scope.game_data['Retailer'].ProductItem[_pname].Stock)
+                         :
+                        ($scope.game_data['Retailer'].ProductItem[_pname].Stock -
+                         $scope.game_data['Retailer'].ProductItem[_pname].Require);
+                });
+
+
+                //let thisData = $scope.game_data['Retailer'];
+                //const fill = fillToMax([
+                //thisData.ProductItem.dumpling.Stock,
+                //thisData.ProductItem.salad.Stock,
+                //thisData.ProductItem.riceball.Stock
+                //], 180);
+                //$scope.game_data['Retailer'].ProductItem.dumpling.Require = fill[0];
+                //$scope.game_data['Retailer'].ProductItem.salad.Require = fill[1];
+                //$scope.game_data['Retailer'].ProductItem.riceball.Require = fill[2];
             }
         }
 
