@@ -33,7 +33,7 @@
     .leave{background:#9F0000;color:#FCFF00;height:40px;line-height:40px;text-align:center;flex:none;width:120px;}
     .game_event{background:#000;color:#FCFF00;display:flex;align-items: center;padding:10px 40px;}
     .game_event div{flex:1}
-    .gmae_board{display:flex;width:1080px;margin:25px auto}
+    .gmae_board{display:flex;width:1080px;margin:25px auto;overflow-x: hidden;}
     .gmae_board .left{flex:none;width:180px;}
     .gmae_board .right{flex:none;width:180px;}
     .gmae_board .center {flex:1;display:flex;flex-wrap:wrap;}
@@ -47,7 +47,7 @@
     .gmae_board .left .bottom{position:relative;bottom:-350px;text-align:center;}
     .gmae_board .right .bottom{position:relative;bottom:0px;text-align:center;}
 
-    .result{width:980px;margin:10% auto 0 auto;padding:40px;text-align:center;background:#fff;border-radius:10px;min-height:30vw}
+    .result{width:980px;margin:10% auto 0 auto;padding:40px;text-align:center;background:#fff;border-radius:10px;min-height:30vw;max-height:60vh;overflow-y:scroll;overflow-x:hidden}
     .game_area{padding-bottom:3vw}
     .spring{background:url(images/spring.jpg);background-size:cover}
     .summer{background:url(images/summer.jpg);background-size:cover}
